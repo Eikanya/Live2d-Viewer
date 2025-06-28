@@ -1,0 +1,32 @@
+{
+  "Version": 3,
+  "Name": "your_model_name",
+  "FileReferences": {
+    "Moc": "your_model.moc3",
+    "Textures": ["textures/texture_00.png"],
+    "HitAreas": [
+      { "Id": "TouchHead", "Name": "head" },
+      { "Id": "TouchBody", "Name": "body" },
+      { "Id": "TouchSpecial", "Name": "special" }
+    ],
+    "tapMotions": {
+      "head": {
+        "touch_head": 50,
+        "idle": 50
+      },
+      "body": {
+        "touch_body": 60,
+        "idle": 40
+      },
+      "special": {
+        "touch_special": 100
+      }
+    },
+    "Motions": {
+      "touch_head": [{"File": "motions/touch_head.motion3.json"}],
+      "touch_body": [{"File": "motions/touch_body.motion3.json"}],
+      "touch_special": [{"File": "motions/touch_special.motion3.json"}],
+      "idle": [{"File": "motions/idle.motion3.json"}]
+    }
+  }
+}

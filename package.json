@@ -1,0 +1,61 @@
+{
+  "name": "live2d-viewer",
+  "version": "1.0.0",
+  "description": "live2d-viewer",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run generate-models-index && vite build",
+    "preview": "vite preview",
+    "generate-models-index": "node scripts/generate-models-index.js",
+    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron-build": "npm run build && electron-builder",
+    "dist": "npm run build && electron-builder --publish=never"
+  },
+  "keywords": [
+    "electron",
+    "vue",
+    "live2d",
+    "vtuber"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "@ricky0123/vad-web": "^0.0.22",
+    "@vitejs/plugin-vue": "^4.5.0",
+    "concurrently": "^8.2.2",
+    "electron": "^27.1.3",
+    "electron-builder": "^24.6.4",
+    "naive-ui": "^2.41.0",
+    "sharp": "^0.34.2",
+    "vite": "^5.0.0",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "@vicons/ionicons5": "^0.13.0",
+    "lodash-es": "^4.17.21",
+    "pinia": "^2.1.7",
+    "vue": "^3.3.8"
+  },
+  "build": {
+    "appId": "com.live2d.viewer",
+    "productName": "Live2D viewer",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.entertainment"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}

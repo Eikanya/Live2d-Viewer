@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live2D Viewer</title>
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- 按正确顺序加载库文件 -->
+  <script src="/libs/pixi-7.4.2.min.js"></script>
+  <script src="/libs/live2dcubismcore.min.js"></script>
+
+  <script src="/libs/cubism4.min.js"></script>
+  <!-- 库加载完成后再加载 Vue 应用 -->
+  <script>
+    // 等待所有库加载完成
+    function checkLibrariesLoaded() {
+      if (typeof PIXI !== 'undefined' &&
+          window.PIXI &&
+          window.PIXI.live2d &&
+          window.PIXI.live2d.Live2DModel &&
+          window.PIXI.live2d.Cubism4ModelSettings) {
+        console.log('✅ 所有库已加载完成，启动 Vue 应用')
+
+        // 动态加载 Vue 应用
+        const script = document.createElement('script')
+        script.type = 'module'
+        script.src = '/src/main.js'
+        document.body.appendChild(script)
+      } else {
+        console.log('⏳ 等待库加载完成...', {
+          PIXI: typeof PIXI !== 'undefined',
+          live2d: !!window.PIXI?.live2d,
+          Live2DModel: !!window.PIXI?.live2d?.Live2DModel,
+          Cubism4ModelSettings: !!window.PIXI?.live2d?.Cubism4ModelSettings
+        })
+        setTimeout(checkLibrariesLoaded, 100)
+      }
+    }
+
+    // 开始检查
+    setTimeout(checkLibrariesLoaded, 100)
+  </script>
+</body>
+</html>

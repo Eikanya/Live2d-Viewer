@@ -1,0 +1,289 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background: var(--n-body-color);
+  color: var(--n-text-color);
+  /* overflow: hidden; 移除全局overflow限制，允许组件内部滚动 */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#app {
+  width: 100%;
+  height: 100vh;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--n-color-embedded);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--n-scrollbar-color);
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--n-scrollbar-color-hover);
+}
+
+/* 按钮通用样式 */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background: var(--n-primary-color);
+  color: var(--n-primary-color-text);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn:hover {
+  background: var(--n-primary-color-hover);
+}
+
+.btn:disabled {
+  background: var(--n-color-disabled);
+  cursor: not-allowed;
+}
+
+/* 输入框通用样式 */
+.input {
+  padding: 8px 12px;
+  border: 1px solid var(--n-border-color);
+  border-radius: 4px;
+  background: var(--n-input-color);
+  color: var(--n-text-color);
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--n-primary-color);
+}
+
+/* 选择框通用样式 */
+.select {
+  padding: 8px 12px;
+  border: 1px solid var(--n-border-color);
+  border-radius: 4px;
+  background: var(--n-input-color);
+  color: var(--n-text-color);
+  cursor: pointer;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--n-primary-color);
+}
+
+/* 圆形按钮 */
+.circle-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--n-primary-color);
+  color: var(--n-primary-color-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.circle-btn:hover {
+  background: var(--n-primary-color-hover);
+}
+
+/* 折叠面板样式 */
+.collapsible {
+  color: var(--n-text-color);
+  cursor: pointer;
+  padding: 12px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 14px;
+  border-bottom: 1px solid var(--n-border-color);
+  transition: background-color 0.2s;
+}
+
+.collapsible:hover {
+  background-color: var(--n-color-hover);
+}
+
+.collapsible.active {
+  background-color: var(--n-primary-color);
+  color: var(--n-primary-color-text);
+}
+
+.collapsible-content {
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  background-color: var(--n-color-embedded);
+}
+
+.collapsible-content.show {
+  max-height: 500px;
+}
+
+.collapsible-list {
+  padding: 15px;
+}
+
+/* 范围输入样式 */
+.rangeOption {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  gap: 10px;
+}
+
+.rangeOption p {
+  min-width: 60px;
+  font-size: 12px;
+}
+
+.input-range {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--n-color-embedded);
+  outline: none;
+}
+
+.input-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--n-primary-color);
+  cursor: pointer;
+}
+
+.input-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--n-primary-color);
+  cursor: pointer;
+  border: none;
+}
+
+/* 复选框样式 */
+.checkBoxOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.checkBoxOption p {
+  font-size: 12px;
+}
+
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--n-primary-color);
+}
+
+/* 数字输入框 */
+input[type="number"] {
+  width: 60px;
+  padding: 4px 8px;
+  border: 1px solid var(--n-border-color);
+  border-radius: 4px;
+  background: var(--n-input-color);
+  color: var(--n-text-color);
+  font-size: 12px;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+/* 颜色选择器 */
+.color-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.colorPicker {
+  width: 40px;
+  height: 30px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* 标签页样式 */
+.tab {
+  border-bottom: 1px solid var(--n-border-color);
+}
+
+.tab-btn-list {
+  display: flex;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  color: var(--n-text-color);
+  cursor: pointer;
+  border-right: 1px solid var(--n-border-color);
+  transition: background-color 0.2s;
+}
+
+.tab-btn:last-child {
+  border-right: none;
+}
+
+.tab-btn:hover {
+  background: var(--n-color-hover);
+}
+
+.tab-btn.btn-selecting {
+  background: var(--n-primary-color);
+  color: var(--n-primary-color-text);
+}
+
+.tab-btn a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.tab-content {
+  display: none;
+  padding: 20px;
+  color: var(--n-text-color);
+}
+
+.tab-content.shown {
+  display: block;
+}
+
+:root {
+  /* 浅色主题变量 */
+  --n-body-color-light: #ffffff;
+  --n-text-color-light: #333333;
+  
+  /* 深色主题变量 */
+  --n-body-color-dark: #1a1a1a;
+  --n-text-color-dark: #ffffff;
+}
+
