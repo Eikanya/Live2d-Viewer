@@ -1,8 +1,9 @@
-
-
 此项目由AI模型生成的，方便查看live2d模型和实现AI对话功能，AI对话后端对接Open-LLM-VTuber。桌宠功能还没实现。
 项目没有经过充分测试，出现bug请直接问大模型解决。
 
+![image](image.png)
+
+[模型获取](https://github.com/Eikanya/Live2d-model)
 
 下面由AI生成的内容：
 
@@ -215,3 +216,5 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 ---
 
 ⭐ 如果这个项目对你有帮助，请给我们一个 Star！
+
+

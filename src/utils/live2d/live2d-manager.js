@@ -7,33 +7,12 @@ import { Live2DCoreManager } from './core-manager.js'
 import { Live2DModelManager } from './model-manager.js'
 import { Live2DInteractionManager } from './interaction-manager.js'
 import { Live2DAnimationManager } from './animation-manager.js'
-import { getRecommendedSettings, checkWebGLSupport } from './utils.js'
-
-// 日志工具函数
-const log = (message, level = 'info') => {
-  const prefix = '[Live2DManager]'
-  const timestamp = new Date().toISOString()
-  
-  switch (level) {
-    case 'error':
-      console.error(`${timestamp} ${prefix} ${message}`)
-      break
-    case 'warn':
-      console.warn(`${timestamp} ${prefix} ${message}`)
-      break
-    case 'debug':
-      if (window.DEBUG_LIVE2D) {
-        console.log(`${timestamp} ${prefix} ${message}`)
-      }
-      break
-    default:
-      console.log(`${timestamp} ${prefix} ${message}`)
-  }
-}
+import { getRecommendedSettings, checkWebGLSupport, createLogger } from './utils.js'
 
 export class Live2DManager {
   constructor(container) {
     this.container = container
+    this.logger = createLogger('Live2DManager')
     
     // 初始化子管理器
     this.coreManager = new Live2DCoreManager(container)
@@ -52,7 +31,7 @@ export class Live2DManager {
    */
   async init(options = {}) {
     try {
-      log('开始初始化...')
+      this.logger.log('开始初始化...')
 
       // 检查WebGL支持
       if (!checkWebGLSupport()) {
@@ -76,40 +55,16 @@ export class Live2DManager {
       }
 
       this.isInitialized = true
-      log('初始化完成')
+      this.logger.log('初始化完成')
       
       return true
     } catch (error) {
-      log(`初始化失败: ${error.message}`, 'error')
+      this.logger.error(`初始化失败: ${error.message}`)
       throw error
     }
   }
 
   // === 模型管理 API ===
-
-  /**
-   * 验证模型状态
-   * @param {HeroModel} model - 要验证的模型
-   * @returns {boolean} 模型是否有效
-   */
-  validateModel(model) {
-    if (!model) {
-      log('模型为空')
-      return false
-    }
-
-    if (!model.model) {
-      log('模型实例为空')
-      return false
-    }
-
-    if (!model.model.internalModel) {
-      log('模型内部实例为空')
-      return false
-    }
-
-    return true
-  }
 
   /**
    * 加载模型
@@ -118,20 +73,20 @@ export class Live2DManager {
    */
   async loadModel(modelData) {
     try {
-      log('开始加载模型:', modelData.id)
+      this.logger.log('开始加载模型:', modelData.id)
 
       // 使用模型管理器加载模型
       const heroModel = await this.modelManager.loadModel(modelData)
 
-      if (heroModel && this.interactionManager) {
+      if (heroModel) { // interactionManager在init后总是存在的
         // 绑定交互事件
         this.interactionManager.bindModelInteractionEvents(modelData.id, heroModel)
-        log('模型加载成功:', modelData.id)
+        this.logger.log('模型加载成功:', modelData.id)
       }
 
       return heroModel
     } catch (error) {
-      log('模型加载失败:', error, 'error')
+      this.logger.error('模型加载失败:', error)
       throw error
     }
   }
@@ -142,7 +97,7 @@ export class Live2DManager {
    */
   unloadModel(modelId) {
     try {
-      log('开始卸载模型:', modelId)
+      this.logger.log('开始卸载模型:', modelId)
 
       // 清理交互事件监听器
       if (this.interactionManager) {
@@ -152,9 +107,9 @@ export class Live2DManager {
       // 使用模型管理器卸载模型
       this.modelManager.unloadModel(modelId)
 
-      log('模型卸载成功:', modelId)
+      this.logger.log('模型卸载成功:', modelId)
     } catch (error) {
-      log('模型卸载失败:', error, 'error')
+      this.logger.error('模型卸载失败:', error)
     }
   }
 
@@ -165,11 +120,11 @@ export class Live2DManager {
    */
   async switchModel(modelData) {
     try {
-      log('开始切换模型:', modelData.id)
+      this.logger.log('开始切换模型:', modelData.id)
 
       // 卸载当前模型
       const currentModel = this.modelManager.getCurrentModel()
-      if (currentModel && this.interactionManager) {
+      if (currentModel) { // interactionManager在init后总是存在的
         this.interactionManager.cleanupModelEventListeners(currentModel.id)
         this.modelManager.unloadModel(currentModel.id)
       }
@@ -178,14 +133,14 @@ export class Live2DManager {
       const newModel = await this.loadModel(modelData)
 
       // 绑定新模型的交互事件
-      if (newModel && this.interactionManager) {
+      if (newModel) { // interactionManager在init后总是存在的
         this.interactionManager.bindModelInteractionEvents(modelData.id, newModel)
       }
 
-      log('模型切换成功:', modelData.id)
+      this.logger.log('模型切换成功:', modelData.id)
       return newModel
     } catch (error) {
-      log('模型切换失败:', error, 'error')
+      this.logger.error('模型切换失败:', error)
       throw error
     }
   }
@@ -206,7 +161,7 @@ export class Live2DManager {
         heroModel.autoFitToCanvas(canvasWidth, canvasHeight, 0.5)
       }
     } catch (error) {
-      log(`自动适应画布大小失败: ${error.message}`, 'warn')
+      this.logger.debug(`自动适应画布大小失败: ${error.message}`)
     }
   }
 
@@ -215,12 +170,12 @@ export class Live2DManager {
    * @param {string} modelId - 模型ID
    */
   removeModel(modelId) {
-    log('开始移除模型:', modelId)
+    this.logger.log('开始移除模型:', modelId)
 
     try {
       const heroModel = this.modelManager.getModel(modelId)
       if (!heroModel) {
-        log('模型不存在:', modelId)
+        this.logger.warn('模型不存在:', modelId)
         return
       }
 
@@ -228,34 +183,34 @@ export class Live2DManager {
       try {
         if (this.animationManager) {
           this.animationManager.stopAllAnimations(modelId)
-          log('已停止模型动画:', modelId)
+          this.logger.log('已停止模型动画:', modelId)
         }
       } catch (e) {
-        log(`停止动画失败: ${e.message}`, 'warn')
+        this.logger.warn(`停止动画失败: ${e.message}`)
       }
 
       // 2. 清理交互事件
       try {
         if (this.interactionManager) {
           this.interactionManager.cleanupModelEventListeners(modelId)
-          log('已清理模型交互事件:', modelId)
+          this.logger.log('已清理模型交互事件:', modelId)
         }
       } catch (e) {
-        log(`清理交互事件失败: ${e.message}`, 'warn')
+        this.logger.warn(`清理交互事件失败: ${e.message}`)
       }
 
       // 3. 从模型管理器中移除（这会触发模型的销毁）
       try {
         this.modelManager.removeModel(modelId)
-        log('已从模型管理器移除:', modelId)
+        this.logger.log('已从模型管理器移除:', modelId)
       } catch (e) {
-        log(`从模型管理器移除失败: ${e.message}`, 'error')
+        this.logger.error(`从模型管理器移除失败: ${e.message}`)
         throw e
       }
 
-      log(`模型移除完成: ${modelId}`)
+      this.logger.log(`模型移除完成: ${modelId}`)
     } catch (error) {
-      log(`移除模型失败: ${error.message}`, 'error')
+      this.logger.error(`移除模型失败: ${error.message}`)
       throw error
     }
   }
@@ -412,7 +367,7 @@ export class Live2DManager {
   setInteractionEnabled(enabled) {
     if (this.interactionManager) {
       this.interactionManager.setInteractionEnabled(enabled)
-      log(`🖱️ [Live2DManager] 交互功能已${enabled ? '启用' : '禁用'}`)
+      this.logger.log(`🖱️ 交互功能已${enabled ? '启用' : '禁用'}`)
     }
   }
 
@@ -428,24 +383,6 @@ export class Live2DManager {
     }
   }
 
-  /**
-   * 更新缩放设置
-   * @param {Object} settings - 缩放设置对象
-   * @param {number} settings.zoomSpeed - 缩放步长
-   */
-  updateZoomSettings(settings) {
-    if (!this.interactionManager) {
-      log('交互管理器未初始化，无法更新缩放设置', 'warn')
-      return
-    }
-
-    try {
-      this.interactionManager.updateZoomSettings(settings)
-      log('缩放设置已更新:', settings)
-    } catch (error) {
-      log('更新缩放设置失败:', error, 'error')
-    }
-  }
 
   /**
    * 获取当前缩放设置
@@ -459,7 +396,7 @@ export class Live2DManager {
     try {
       return this.interactionManager.getZoomSettings()
     } catch (error) {
-      log('获取缩放设置失败:', error, 'error')
+      this.logger.error('获取缩放设置失败:', error)
       return null
     }
   }
@@ -470,15 +407,15 @@ export class Live2DManager {
    */
   setWheelZoomEnabled(enabled) {
     if (!this.interactionManager) {
-      log('交互管理器未初始化，无法设置滚轮缩放', 'warn')
+      this.logger.warn('交互管理器未初始化，无法设置滚轮缩放')
       return
     }
 
     try {
       this.interactionManager.setWheelZoomEnabled(enabled)
-      log('滚轮缩放状态已设置:', enabled)
+      this.logger.log('滚轮缩放状态已设置:', enabled)
     } catch (error) {
-      log('设置滚轮缩放状态失败:', error, 'error')
+      this.logger.error('设置滚轮缩放状态失败:', error)
     }
   }
 
@@ -533,7 +470,7 @@ export class Live2DManager {
         }
       })
     } catch (error) {
-      log(`自动适应所有模型到画布大小失败: ${error.message}`, 'warn')
+      this.logger.debug(`自动适应所有模型到画布大小失败: ${error.message}`)
     }
   }
 
@@ -541,7 +478,7 @@ export class Live2DManager {
    * 销毁Live2D管理器
    */
   destroy() {
-    log('开始销毁Live2D管理器...')
+    this.logger.log('开始销毁Live2D管理器...')
 
     try {
       // 销毁交互管理器
@@ -563,9 +500,9 @@ export class Live2DManager {
       }
 
       this.isInitialized = false
-      log('Live2D管理器销毁完成')
+      this.logger.log('Live2D管理器销毁完成')
     } catch (error) {
-      log(`销毁Live2D管理器失败: ${error.message}`, 'error')
+      this.logger.error(`销毁Live2D管理器失败: ${error.message}`)
     }
   }
 

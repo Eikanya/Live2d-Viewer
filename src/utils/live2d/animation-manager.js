@@ -3,6 +3,8 @@
  * 负责处理模型动作、表情和音频播放
  */
 
+import { createLogger } from './utils.js'
+
 export class Live2DAnimationManager {
   constructor(modelManager) {
     this.modelManager = modelManager
@@ -10,6 +12,7 @@ export class Live2DAnimationManager {
     this.animationQueue = new Map() // 动画队列
     this.isPlaying = new Map() // 播放状态跟踪
     this.isPetMode = false
+    this.logger = createLogger('Live2DAnimationManager')
   }
 
   /**
@@ -18,7 +21,7 @@ export class Live2DAnimationManager {
    */
   setPetMode(enabled) {
     this.isPetMode = enabled
-    console.log(`🐾 [Live2DAnimationManager] 桌宠模式${enabled ? '已启用' : '已禁用'}`)
+    this.logger.log(`🐾 桌宠模式${enabled ? '已启用' : '已禁用'}`)
 
     if (enabled) {
       // 停止所有当前动画
@@ -39,7 +42,7 @@ export class Live2DAnimationManager {
   async playMotion(modelId, group, index, priority = 2) {
     const heroModel = this.modelManager.getModel(modelId)
     if (!heroModel) {
-      console.warn('⚠️ [Live2DAnimationManager] 模型不存在:', modelId)
+      this.logger.warn('⚠️ 模型不存在:', modelId)
       return false
     }
 
@@ -48,12 +51,12 @@ export class Live2DAnimationManager {
       const adjustedPriority = this.isPetMode ? Math.min(priority, 1) : priority
       
       const result = await heroModel.playMotion(group, index, adjustedPriority)
-      console.log('🎭 [Live2DAnimationManager] 播放动作:', {
+      this.logger.log('🎭 播放动作:', {
         modelId, group, index, priority: adjustedPriority, result
       })
       return result
     } catch (error) {
-      console.error('❌ [Live2DAnimationManager] 播放动作失败:', error)
+      this.logger.error('❌ 播放动作失败:', error)
       return false
     }
   }
@@ -66,7 +69,7 @@ export class Live2DAnimationManager {
   async playRandomMotion(modelId, group = null) {
     const heroModel = this.modelManager.getModel(modelId)
     if (!heroModel) {
-      console.warn('⚠️ [Live2DAnimationManager] 模型不存在:', modelId)
+      this.logger.warn('⚠️ 模型不存在:', modelId)
       return false
     }
 
@@ -75,12 +78,12 @@ export class Live2DAnimationManager {
       const targetGroup = this.isPetMode ? (group || 'idle') : group
       
       const result = await heroModel.playRandomMotion(targetGroup)
-      console.log('🎲 [Live2DAnimationManager] 播放随机动作:', {
+      this.logger.log('🎲 播放随机动作:', {
         modelId, group: targetGroup, result
       })
       return result
     } catch (error) {
-      console.error('❌ [Live2DAnimationManager] 播放随机动作失败:', error)
+      this.logger.error('❌ 播放随机动作失败:', error)
       return false
     }
   }
@@ -93,18 +96,18 @@ export class Live2DAnimationManager {
   setExpression(modelId, expressionIndex) {
     const heroModel = this.modelManager.getModel(modelId)
     if (!heroModel) {
-      console.warn('⚠️ [Live2DAnimationManager] 模型不存在:', modelId)
+      this.logger.warn('⚠️ 模型不存在:', modelId)
       return false
     }
 
     try {
       heroModel.setExpression(expressionIndex)
-      console.log('😊 [Live2DAnimationManager] 设置表情:', {
+      this.logger.log('😊 设置表情:', {
         modelId, expressionIndex
       })
       return true
     } catch (error) {
-      console.error('❌ [Live2DAnimationManager] 设置表情失败:', error)
+      this.logger.error('❌ 设置表情失败:', error)
       return false
     }
   }
@@ -116,18 +119,18 @@ export class Live2DAnimationManager {
   playRandomExpression(modelId) {
     const heroModel = this.modelManager.getModel(modelId)
     if (!heroModel) {
-      console.warn('⚠️ [Live2DAnimationManager] 模型不存在:', modelId)
+      this.logger.warn('⚠️ 模型不存在:', modelId)
       return false
     }
 
     try {
       const result = heroModel.playRandomExpression()
-      console.log('🎲 [Live2DAnimationManager] 播放随机表情:', {
+      this.logger.log('🎲 播放随机表情:', {
         modelId, result
       })
       return result
     } catch (error) {
-      console.error('❌ [Live2DAnimationManager] 播放随机表情失败:', error)
+      this.logger.error('❌ 播放随机表情失败:', error)
       return false
     }
   }
@@ -148,7 +151,7 @@ export class Live2DAnimationManager {
       })
     })
 
-    // console.log('🎭 [Live2DAnimationManager] 批量表情控制完成:', results)
+    // this.logger.log('🎭 批量表情控制完成:', results)
     return results
   }
 
@@ -169,7 +172,7 @@ export class Live2DAnimationManager {
       }
     }
 
-    // console.log('🎭 [Live2DAnimationManager] 批量动作控制完成:', results)
+    // this.logger.log('🎭 批量动作控制完成:', results)
     return results
   }
 
@@ -181,7 +184,7 @@ export class Live2DAnimationManager {
   async playAudio(audioUrl, options = {}) {
     // 桌宠模式下不播放音频
     if (this.isPetMode) {
-      // console.log('🔇 [Live2DAnimationManager] 桌宠模式下不播放音频')
+      // this.logger.log('🔇 桌宠模式下不播放音频')
       return false
     }
 
@@ -201,17 +204,17 @@ export class Live2DAnimationManager {
       // 播放音频
       await this.currentAudioPlayer.play()
       
-      console.log('🔊 [Live2DAnimationManager] 音频播放开始:', audioUrl)
+      this.logger.log('🔊 音频播放开始:', audioUrl)
 
       // 监听播放结束事件
       this.currentAudioPlayer.addEventListener('ended', () => {
-        console.log('🔇 [Live2DAnimationManager] 音频播放结束')
+        this.logger.log('🔇 音频播放结束')
         this.currentAudioPlayer = null
       })
 
       return true
     } catch (error) {
-      console.error('❌ [Live2DAnimationManager] 音频播放失败:', error)
+      this.logger.error('❌ 音频播放失败:', error)
       this.currentAudioPlayer = null
       return false
     }
@@ -225,7 +228,7 @@ export class Live2DAnimationManager {
       this.currentAudioPlayer.pause()
       this.currentAudioPlayer.currentTime = 0
       this.currentAudioPlayer = null
-      console.log('⏹️ [Live2DAnimationManager] 音频播放已停止')
+      this.logger.log('⏹️ 音频播放已停止')
     }
   }
 
@@ -235,7 +238,7 @@ export class Live2DAnimationManager {
   pauseAudio() {
     if (this.currentAudioPlayer && !this.currentAudioPlayer.paused) {
       this.currentAudioPlayer.pause()
-      console.log('⏸️ [Live2DAnimationManager] 音频播放已暂停')
+      this.logger.log('⏸️ 音频播放已暂停')
       return true
     }
     return false
@@ -247,7 +250,7 @@ export class Live2DAnimationManager {
   resumeAudio() {
     if (this.currentAudioPlayer && this.currentAudioPlayer.paused) {
       this.currentAudioPlayer.play()
-      console.log('▶️ [Live2DAnimationManager] 音频播放已恢复')
+      this.logger.log('▶️ 音频播放已恢复')
       return true
     }
     return false
@@ -260,7 +263,7 @@ export class Live2DAnimationManager {
   setAudioVolume(volume) {
     if (this.currentAudioPlayer) {
       this.currentAudioPlayer.volume = Math.max(0, Math.min(1, volume))
-      console.log('🔊 [Live2DAnimationManager] 音量设置为:', volume)
+      this.logger.log('🔊 音量设置为:', volume)
       return true
     }
     return false
@@ -290,14 +293,14 @@ export class Live2DAnimationManager {
   getModelMotions(modelId) {
     const heroModel = this.modelManager.getModel(modelId)
     if (!heroModel) {
-      console.warn('⚠️ [Live2DAnimationManager] 模型不存在:', modelId)
+      this.logger.warn('⚠️ 模型不存在:', modelId)
       return null
     }
 
     try {
       return heroModel.getMotions()
     } catch (error) {
-      console.error('❌ [Live2DAnimationManager] 获取动作信息失败:', error)
+      this.logger.error('❌ 获取动作信息失败:', error)
       return null
     }
   }
@@ -309,14 +312,14 @@ export class Live2DAnimationManager {
   getModelExpressions(modelId) {
     const heroModel = this.modelManager.getModel(modelId)
     if (!heroModel) {
-      console.warn('⚠️ [Live2DAnimationManager] 模型不存在:', modelId)
+      this.logger.warn('⚠️ 模型不存在:', modelId)
       return null
     }
 
     try {
       return heroModel.getExpressions()
     } catch (error) {
-      console.error('❌ [Live2DAnimationManager] 获取表情信息失败:', error)
+      this.logger.error('❌ 获取表情信息失败:', error)
       return null
     }
   }
@@ -331,12 +334,12 @@ export class Live2DAnimationManager {
           heroModel.stopAllMotions()
         }
       } catch (error) {
-        console.error('❌ [Live2DAnimationManager] 停止动画失败:', error)
+        this.logger.error('❌ 停止动画失败:', error)
       }
     })
 
     this.stopAudio()
-    console.log('⏹️ [Live2DAnimationManager] 所有动画已停止')
+    this.logger.log('⏹️ 所有动画已停止')
   }
 
   /**
@@ -346,6 +349,6 @@ export class Live2DAnimationManager {
     this.stopAllAnimations()
     this.animationQueue.clear()
     this.isPlaying.clear()
-    console.log('🧹 [Live2DAnimationManager] 动画管理器已销毁')
+    this.logger.log('🧹 动画管理器已销毁')
   }
 }

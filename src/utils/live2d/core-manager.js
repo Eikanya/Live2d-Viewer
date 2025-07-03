@@ -3,7 +3,7 @@
  * 负责PIXI应用初始化、基础设置和生命周期管理
  */
 
-import { waitForLive2D } from './utils.js'
+import { waitForLive2D, createLogger } from './utils.js'
 
 export class Live2DCoreManager {
   constructor(container) {
@@ -11,6 +11,7 @@ export class Live2DCoreManager {
     this.app = null
     this.modelContainer = null
     this.isInitialized = false
+    this.logger = createLogger('Live2DCoreManager')
   }
 
   /**
@@ -53,9 +54,7 @@ export class Live2DCoreManager {
         this.modelContainer.eventMode = 'dynamic'
       }
 
-      // 确保Stage交互性（可能在createPixiApplication中已设置）
-      this.app.stage.interactive = true
-      this.app.stage.interactiveChildren = true
+      // 确保Stage交互性（已在createPixiApplication中设置）
       if (typeof this.app.stage.eventMode !== 'undefined') {
         this.app.stage.eventMode = 'dynamic'
       }
@@ -63,9 +62,9 @@ export class Live2DCoreManager {
       this.app.stage.addChild(this.modelContainer)
 
       this.isInitialized = true
-      console.log('✅ [Live2DCoreManager] 初始化完成，使用PIXI事件系统')
+      this.logger.log('✅ 初始化完成，使用PIXI事件系统')
     } catch (error) {
-      console.error('❌ [Live2DCoreManager] 初始化失败:', error)
+      this.logger.error('❌ 初始化失败:', error)
       throw error
     }
   }
@@ -107,7 +106,6 @@ export class Live2DCoreManager {
         app.stage.eventMode = 'dynamic'
       }
 
-      // console.log('✅ [Live2DCoreManager] PIXI 7.x 交互性配置已设置')
     }
 
     return app
@@ -201,10 +199,10 @@ export class Live2DCoreManager {
 
     if (paused) {
       this.app.ticker.stop()
-      console.log('⏸️ [Live2DCoreManager] 渲染已暂停')
+      this.logger.log('⏸️ 渲染已暂停')
     } else {
       this.app.ticker.start()
-      console.log('▶️ [Live2DCoreManager] 渲染已恢复')
+      this.logger.log('▶️ 渲染已恢复')
     }
   }
 
@@ -231,7 +229,7 @@ export class Live2DCoreManager {
    * 销毁核心管理器
    */
   destroy() {
-    console.log('🧹 [Live2DCoreManager] 开始销毁核心管理器')
+    this.logger.log('🧹 开始销毁核心管理器')
 
     // 销毁 PIXI 应用
     if (this.app) {
@@ -247,6 +245,6 @@ export class Live2DCoreManager {
     this.modelContainer = null
     this.isInitialized = false
 
-    console.log('🧹 [Live2DCoreManager] 核心管理器已销毁')
+    this.logger.log('🧹 核心管理器已销毁')
   }
 }

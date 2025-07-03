@@ -4,20 +4,22 @@
  */
 
 import { globalResourceManager } from '../resource-manager.js'
+import { createLogger } from './utils.js'
 
 export class Live2DInteractionManager {
   constructor(coreManager, modelManager) {
     this.coreManager = coreManager
     this.modelManager = modelManager
+    this.logger = createLogger('Live2DInteractionManager')
     
     // 交互配置
     this.isEnabled = true
     this.isDesktopMode = false
     this.zoomSettings = {
       enabled: true,
-      minScale: 0.01,
-      maxScale: 2.0,
-      step: 0.01
+      step: 0.01,
+      minScale: 0.01, // 新增默认最小缩放
+      maxScale: 5.0   // 新增默认最大缩放
     }
     
     // 事件状态
@@ -31,14 +33,10 @@ export class Live2DInteractionManager {
     this.hoveredModel = null
     
     // 使用ResourceManager统一管理事件监听器
-    this.modelEventListeners = new Map()
     this.globalEventListeners = new Map()
     
     // 点击区域配置
     this.clickAreas = new Map() // 存储每个模型的点击区域配置
-    
-    // 调试模式
-    this.debugMode = window.DEBUG_LIVE2D || false
     
     // 初始化
     this.initialize()
@@ -56,7 +54,7 @@ export class Live2DInteractionManager {
       // 绑定全局事件监听器
       this.bindGlobalEventListeners()
     } catch (error) {
-      console.error('❌ [Live2DInteractionManager] 初始化失败:', error)
+      this.logger.error('❌ 初始化失败:', error)
     }
   }
 
@@ -110,8 +108,8 @@ export class Live2DInteractionManager {
         // 计算新缩放值
         let newScale = currentScale + (delta * this.zoomSettings.step)
         
-        // 限制最低缩放为0
-        newScale = Math.max(0, newScale)
+        // 限制缩放范围
+        newScale = Math.max(this.zoomSettings.minScale, Math.min(this.zoomSettings.maxScale, newScale))
         
         // 应用缩放
         this.hoveredModel.setScale(newScale, newScale)
@@ -141,8 +139,8 @@ export class Live2DInteractionManager {
                   // 计算新缩放值
                   let newScale = currentScale + (delta * this.zoomSettings.step)
                   
-                  // 限制最低缩放为0
-                  newScale = Math.max(0, newScale)
+                  // 限制缩放范围
+                  newScale = Math.max(this.zoomSettings.minScale, Math.min(this.zoomSettings.maxScale, newScale))
                   
                   // 应用缩放
                   model.setScale(newScale, newScale)
@@ -152,11 +150,11 @@ export class Live2DInteractionManager {
             }
           }
         } catch (error) {
-          console.warn('⚠️ [Live2DInteractionManager] getObjectsUnderPoint失败:', error)
+          this.logger.warn('⚠️ getObjectsUnderPoint失败:', error)
         }
       }
     } catch (error) {
-      console.error('❌ [Live2DInteractionManager] 处理滚轮缩放失败:', error)
+      this.logger.error('❌ 处理滚轮缩放失败:', error)
     }
   }
 
@@ -233,7 +231,7 @@ export class Live2DInteractionManager {
    */
   bindModelInteractionEvents(modelId, model) {
     if (!model || !model.model) {
-      console.warn('⚠️ [Live2DInteractionManager] 模型无效，无法绑定交互事件:', modelId)
+      this.logger.warn('⚠️ 模型无效，无法绑定交互事件:', modelId)
       return
     }
 
@@ -286,16 +284,6 @@ export class Live2DInteractionManager {
     pixiModel.on('pointerout', pointerOutHandler)
   }
 
-  /**
-   * 向后兼容的绑定模型交互方法
-   * @param {Object} model - 模型实例
-   * @param {string} modelId - 模型ID
-   * @deprecated 使用 bindModelInteractionEvents(modelId, model) 替代
-   */
-  bindModelInteraction(model, modelId) {
-    console.warn('⚠️ [Live2DInteractionManager] bindModelInteraction已废弃，请使用bindModelInteractionEvents')
-    return this.bindModelInteractionEvents(modelId, model)
-  }
 
   /**
    * 处理指针按下事件
@@ -371,7 +359,7 @@ export class Live2DInteractionManager {
   handleModelClick(modelId, event) {
     const model = this.modelManager.getModel(modelId)
     if (!model) {
-      console.warn('⚠️ [Live2DInteractionManager] 模型未找到:', modelId)
+      this.logger.warn('⚠️ 模型未找到:', modelId)
       return
     }
 
@@ -406,7 +394,7 @@ export class Live2DInteractionManager {
         y: localPoint.y
       }
     } catch (error) {
-      console.error('❌ [Live2DInteractionManager] 坐标转换失败:', error)
+      this.logger.error('❌ 坐标转换失败:', error)
       return globalPos
     }
   }
@@ -429,7 +417,7 @@ export class Live2DInteractionManager {
       
       return null
     } catch (error) {
-      console.error('❌ [Live2DInteractionManager] 获取命中区域失败:', error)
+      this.logger.error('❌ 获取命中区域失败:', error)
       return null
     }
   }
@@ -447,7 +435,7 @@ export class Live2DInteractionManager {
              point.y >= area.y && 
              point.y <= area.y + area.height
     } catch (error) {
-      console.error('❌ [Live2DInteractionManager] 区域判断失败:', error)
+      this.logger.error('❌ 区域判断失败:', error)
       return false
     }
   }
@@ -464,6 +452,7 @@ export class Live2DInteractionManager {
       const [group, index] = hitArea.motion.split('_')
       model.playMotion(group, parseInt(index))
     } catch (error) {
+      this.logger.error('❌ 播放点击区域动作失败，回退到随机动作:', error)
       this.playRandomMotion(model)
     }
   }
@@ -476,17 +465,8 @@ export class Live2DInteractionManager {
     try {
       model.playRandomMotion()
     } catch (error) {
-      console.error('❌ [Live2DInteractionManager] 播放随机动作失败:', error)
+      this.logger.error('❌ 播放随机动作失败:', error)
     }
-  }
-
-  /**
-   * 设置模型点击区域
-   * @param {string} modelId - 模型ID
-   * @param {Array} hitAreas - 点击区域配置
-   */
-  setModelClickAreas(modelId, hitAreas) {
-    this.clickAreas.set(modelId, hitAreas || [])
   }
 
   /**
@@ -523,7 +503,7 @@ export class Live2DInteractionManager {
       // 从ResourceManager清理
       globalResourceManager.cleanupResource('modelEventListener', modelId)
     } catch (error) {
-      console.error('❌ [Live2DInteractionManager] 清理模型事件监听器失败:', modelId, error)
+      this.logger.error('❌ 清理模型事件监听器失败:', modelId, error)
     }
   }
 
@@ -533,10 +513,7 @@ export class Live2DInteractionManager {
   cleanupAllEventListeners() {
     try {
       // 清理模型事件监听器
-      const modelIds = Array.from(this.modelEventListeners.keys())
-      modelIds.forEach(modelId => {
-        this.cleanupModelEventListeners(modelId)
-      })
+      globalResourceManager.cleanupModelEventListeners()
 
       // 清理全局事件监听器
       globalResourceManager.cleanupResource('globalEventListener', 'interaction-resize')
@@ -544,7 +521,7 @@ export class Live2DInteractionManager {
       // 清理滚轮事件监听器
       globalResourceManager.cleanupResource('globalEventListener', 'interaction-wheel')
     } catch (error) {
-      console.error('❌ [Live2DInteractionManager] 清理事件监听器失败:', error)
+      this.logger.error('❌ 清理事件监听器失败:', error)
     }
   }
 
@@ -564,7 +541,7 @@ export class Live2DInteractionManager {
       this.dragStartPos = { x: 0, y: 0 }
       this.dragStartModelPos = { x: 0, y: 0 }
     } catch (error) {
-      console.error('❌ [Live2DInteractionManager] 销毁交互管理器失败:', error)
+      this.logger.error('❌ 销毁交互管理器失败:', error)
     }
   }
 
@@ -578,7 +555,7 @@ export class Live2DInteractionManager {
     // 获取canvas元素
     const canvas = this.coreManager?.app?.view
     if (!canvas) {
-      console.warn('⚠️ [Live2DInteractionManager] 未找到canvas，无法绑定滚轮缩放')
+      this.logger.warn('⚠️ 未找到canvas，无法绑定滚轮缩放')
       return
     }
 
@@ -621,20 +598,25 @@ export class Live2DInteractionManager {
   /**
    * 更新缩放设置
    * @param {Object} settings - 缩放设置对象
-   * @param {number} settings.minScale - 最小缩放值（已废弃，不再使用）
-   * @param {number} settings.maxScale - 最大缩放值（已废弃，不再使用）
-   * @param {number} settings.zoomSpeed - 缩放步长
+   * @param {number} [settings.minScale] - 最小缩放值
+   * @param {number} [settings.maxScale] - 最大缩放值
+   * @param {number} [settings.zoomSpeed] - 缩放步长
    */
   updateZoomSettings(settings) {
     if (!settings) return
 
     try {
-      // 只更新缩放步长，不再应用最小和最大值限制
       if (settings.zoomSpeed !== undefined) {
         this.zoomSettings.step = Math.max(0.001, Math.min(0.1, settings.zoomSpeed))
       }
+      if (settings.minScale !== undefined) {
+        this.zoomSettings.minScale = Math.max(0.01, settings.minScale) // 确保最小值为0.01
+      }
+      if (settings.maxScale !== undefined) {
+        this.zoomSettings.maxScale = Math.min(10.0, settings.maxScale) // 确保最大值为10.0
+      }
     } catch (error) {
-      console.error('❌ [Live2DInteractionManager] 更新缩放设置失败:', error)
+      this.logger.error('❌ 更新缩放设置失败:', error)
     }
   }
 

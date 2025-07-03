@@ -7,23 +7,5 @@
     "file": "wuqi_3.model3.json",
     "size": 5644,
     "lastModified": "2025-06-26T10:44:44.137Z"
-  },
-  {
-    "name": "z13_2",
-    "path": "/models/z13_2/z13_2.model3.json",
-    "folder": "z13_2",
-    "description": "z13_2 Live2D Model",
-    "file": "z13_2.model3.json",
-    "size": 4972,
-    "lastModified": "2025-06-26T10:45:06.124Z"
-  },
-  {
-    "name": "zengkehaijunshangjiang_2",
-    "path": "/models/zengkehaijunshangjiang_2/zengkehaijunshangjiang_2.model3.json",
-    "folder": "zengkehaijunshangjiang_2",
-    "description": "zengkehaijunshangjiang_2 Live2D Model",
-    "file": "zengkehaijunshangjiang_2.model3.json",
-    "size": 4893,
-    "lastModified": "2025-06-26T10:44:54.019Z"
   }
 ]

@@ -4,6 +4,45 @@
  */
 
 /**
+ * 创建一个日志记录器实例
+ * @param {string} name - 日志器的名称，将作为前缀显示在日志中
+ * @returns {Object} 包含log, warn, error, debug方法的日志对象
+ */
+export function createLogger(name) {
+  const prefix = `[${name}]`
+  const debugMode = process.env.NODE_ENV === 'development'
+
+  const _log = (message, level = 'info', ...args) => {
+    const timestamp = new Date().toISOString()
+    switch (level) {
+      case 'error':
+        console.error(`${timestamp} ${prefix} ${message}`, ...args)
+        break
+      case 'warn':
+        console.warn(`${timestamp} ${prefix} ${message}`, ...args)
+        break
+      case 'debug':
+        if (debugMode) {
+          console.debug(`${timestamp} ${prefix} ${message}`, ...args)
+        }
+        break
+      default:
+        console.log(`${timestamp} ${prefix} ${message}`, ...args)
+    }
+  }
+
+  return {
+    log: (message, ...args) => _log(message, 'info', ...args),
+    warn: (message, ...args) => _log(message, 'warn', ...args),
+    error: (message, ...args) => _log(message, 'error', ...args),
+    debug: (message, ...args) => _log(message, 'debug', ...args),
+  }
+}
+
+// 为 Live2DUtils 自身创建一个日志器
+const logger = createLogger('Live2DUtils')
+
+/**
  * 等待 Live2D 库加载完成
  * @param {number} timeout - 超时时间（毫秒）
  * @returns {Promise<boolean>}
@@ -27,14 +66,14 @@ export function waitForLive2D(timeout = 10000) {
           window.PIXI.live2d.CubismConfig.setOpacityFromMotion = true
         }
 
-        console.log('✅ [Live2DUtils] Live2D 库加载完成')
+        logger.log('✅ Live2D 库加载完成')
         resolve(true)
         return
       }
 
       if (attempts >= maxAttempts) {
         const error = new Error('Live2D 库加载超时，请检查 /libs/ 文件夹中的库文件')
-        console.error('❌ [Live2DUtils]', error.message)
+        logger.error('❌', error.message)
         reject(error)
         return
       }
@@ -57,7 +96,7 @@ export function checkWebGLSupport() {
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
     return !!gl
   } catch (error) {
-    console.error('❌ [Live2DUtils] WebGL 支持检查失败:', error)
+    logger.error('❌ WebGL 支持检查失败:', error)
     return false
   }
 }
@@ -93,7 +132,7 @@ export function getDevicePerformanceLevel() {
       }
     }
   } catch (error) {
-    console.warn('⚠️ [Live2DUtils] GPU信息获取失败:', error)
+    logger.warn('⚠️ GPU信息获取失败:', error)
   }
 
   // 综合判断性能等级
@@ -249,7 +288,7 @@ export function extractFilenameFromUrl(url, removeExtension = true) {
     
     return filename || '未知文件'
   } catch (error) {
-    console.error('❌ [Live2DUtils] 提取文件名失败:', error)
+    logger.error('❌ 提取文件名失败:', error)
     return '未知文件'
   }
 }

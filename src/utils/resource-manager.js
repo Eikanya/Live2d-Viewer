@@ -47,13 +47,26 @@ export class ResourceManager {
   }
 
   /**
+   * 注册通用资源
+   * @param {string} id - 资源ID
+   * @param {*} resource - 资源实例
+   * @param {Function} cleanupCallback - 清理回调
+   */
+  registerResource(id, resource, cleanupCallback) {
+    if (this.resources.has(id)) {
+      console.warn(`⚠️ [ResourceManager] 资源ID "${id}" 已存在，将覆盖旧资源`)
+      this.cleanupResource(id) // 清理旧资源
+    }
+    this.resources.set(id, { resource, cleanupCallback })
+    console.log(`📝 [ResourceManager] 注册资源: ${id}`)
+  }
+
+  /**
    * 注册定时器
-   * @param {string} id - 定时器ID
    * @param {number} timer - 定时器引用
    */
-  registerTimer(id, timer) {
+  registerTimer(timer) {
     this.timers.add(timer)
-    console.log(`📝 [ResourceManager] 注册定时器: ${id}`)
   }
 
   /**
@@ -135,66 +148,32 @@ export class ResourceManager {
 
   /**
    * 清理指定资源
-   * @param {string} resourceType - 资源类型
    * @param {string} resourceId - 资源ID
    */
-  cleanupResource(resourceType, resourceId) {
-    try {
-      switch (resourceType) {
-        case 'timer':
-          const timer = this.timers.values().next().value
-          if (timer) {
-            this.cleanupStrategies.timer(timer)
-            this.timers.delete(timer)
-          }
-          break
-        case 'eventListener':
-          const listeners = this.eventListeners.get(resourceId)
-          if (listeners) {
-            listeners.forEach(listener => {
-              this.cleanupStrategies.eventListener(listener)
-            })
-            this.eventListeners.delete(resourceId)
-          }
-          break
-        case 'globalEventListener':
-          const globalListeners = this.globalEventListeners.get(resourceId)
-          if (globalListeners) {
-            globalListeners.forEach(listener => {
-              this.cleanupStrategies.eventListener(listener)
-            })
-            this.globalEventListeners.delete(resourceId)
-          }
-          break
-        case 'modelEventListener':
-          const modelListeners = this.modelEventListeners.get(resourceId)
-          if (modelListeners) {
-            modelListeners.forEach(listener => {
-              // 模型事件监听器通常由模型自己管理
-              console.log(`🧹 [ResourceManager] 清理模型事件监听器: ${resourceId} (${listener.eventType})`)
-            })
-            this.modelEventListeners.delete(resourceId)
-          }
-          break
-        case 'audioContext':
-          const audioContext = this.audioContexts.values().next().value
-          if (audioContext) {
-            this.cleanupStrategies.audioContext(audioContext)
-            this.audioContexts.delete(audioContext)
-          }
-          break
-        case 'webglContext':
-          const webglContext = this.webglContexts.values().next().value
-          if (webglContext) {
-            this.cleanupStrategies.webglContext(webglContext)
-            this.webglContexts.delete(webglContext)
-          }
-          break
+  cleanupResource(resourceId) {
+    const resourceInfo = this.resources.get(resourceId)
+    if (resourceInfo && typeof resourceInfo.cleanupCallback === 'function') {
+      try {
+        resourceInfo.cleanupCallback(resourceInfo.resource)
+        this.resources.delete(resourceId)
+        console.log(`🧹 [ResourceManager] 清理资源: ${resourceId}`)
+      } catch (error) {
+        console.error(`❌ [ResourceManager] 清理资源失败 (${resourceId}):`, error)
       }
-      console.log(`🧹 [ResourceManager] 清理资源: ${resourceId}`)
-    } catch (error) {
-      console.error(`❌ [ResourceManager] 清理${resourceType}失败${resourceId ? ` (${resourceId})` : ''}:`, error)
+    } else {
+      // Fallback for old system
+      this.cleanupLegacyResource(resourceId)
     }
+  }
+
+  /**
+   * 清理旧版资源（兼容）
+   * @param {string} resourceId - 资源ID
+   */
+  cleanupLegacyResource(resourceId) {
+    // This method is a fallback for the old system.
+    // It's not fully implemented as the logic depends on the old resource management system.
+    console.warn(`[ResourceManager] cleanupLegacyResource called for: ${resourceId}. This is a fallback and may not clean up resources correctly.`)
   }
 
   /**
@@ -326,7 +305,9 @@ export class ResourceManager {
     this.cleanupWebGLContexts()
     
     // 清理其他资源
-    this.resources.clear()
+    this.resources.forEach((value, key) => {
+      this.cleanupResource(key)
+    })
     
     const resourceCount = this.getResourceCount()
     console.log(`🧹 [ResourceManager] 所有资源已清理完成 (资源: ${resourceCount} 个)`)
@@ -372,4 +353,4 @@ export const globalResourceManager = new ResourceManager()
 // 页面卸载时自动清理所有资源
 window.addEventListener('beforeunload', () => {
   globalResourceManager.cleanupAll()
-}) 
+})

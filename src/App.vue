@@ -421,12 +421,11 @@ export default {
       if (live2dViewer.value) {
         live2dViewer.value.loadModel(modelData)
       }
-      live2dStore.setCurrentModel(modelData)
     }
 
     const handleModelConfigure = (modelData) => {
       console.log('配置模型:', modelData)
-      live2dStore.setCurrentModel(modelData)
+      // live2dStore.setCurrentModel(modelData) // 移除此行，避免在切换到设置时重置模型
       activeKey.value = 'model-settings'
     }
 

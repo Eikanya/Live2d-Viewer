@@ -209,11 +209,11 @@ export class WebSocketService {
   // 等待连接建立
   waitForConnection() {
     return new Promise((resolve, reject) => {
-      this.connectionTimer = globalResourceManager.registerTimer(
-        setTimeout(() => {
-          reject(new Error('WebSocket连接超时'))
-        }, this.connectionTimeout)
-      )
+      const timer = setTimeout(() => {
+        reject(new Error('WebSocket连接超时'))
+      }, this.connectionTimeout)
+      this.connectionTimer = timer
+      globalResourceManager.registerTimer(timer)
 
       this.ws.onopen = () => {
         if (this.connectionTimer) {
@@ -277,11 +277,11 @@ export class WebSocketService {
     
     this.log(`安排重连 (${this.reconnectAttempts}/${this.maxReconnectAttempts}) 延迟: ${delay}ms`, 'info')
     
-    this.reconnectTimer = globalResourceManager.registerTimer(
-      setTimeout(() => {
-        this.reconnect()
-      }, delay)
-    )
+    const timer = setTimeout(() => {
+      this.reconnect()
+    }, delay)
+    this.reconnectTimer = timer
+    globalResourceManager.registerTimer(timer)
   }
 
   // 重连

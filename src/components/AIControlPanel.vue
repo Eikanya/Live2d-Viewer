@@ -151,7 +151,7 @@ const handleSendMessage = async () => {
 }
 
 const handleKeyDown = (e) => {
-  if (e.ctrlKey && e.key === 'Enter') {
+  if (e.shiftKey && e.key === 'Enter') {
     e.preventDefault()
     handleSendMessage()
   }

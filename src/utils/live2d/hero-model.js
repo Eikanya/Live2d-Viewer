@@ -3,17 +3,17 @@
  * 封装 Live2D 模型的加载、控制和信息获取
  */
 
-import { waitForLive2D } from './utils.js'
+import { waitForLive2D, createLogger } from './utils.js'
 
 // 高阶函数：统一空值检查
 const withModelCheck = (method, operationName = '操作') => {
   return function(...args) {
     if (!this.model) {
-      this.log('warn', `⚠️ [HeroModel] 模型未加载，无法${operationName}`)
+      this.logger.warn(`⚠️ 模型未加载，无法${operationName}`)
       return false
     }
     if (!this.model.internalModel && operationName.includes('参数')) {
-      this.log('warn', `⚠️ [HeroModel] 内部模型未准备好，无法${operationName}`)
+      this.logger.warn(`⚠️ 内部模型未准备好，无法${operationName}`)
       return false
     }
     return method.apply(this, args)
@@ -26,7 +26,7 @@ const withErrorHandling = (method, operationName = '操作') => {
     try {
       return await method.apply(this, args)
     } catch (error) {
-      this.log('error', `❌ [HeroModel] ${operationName}失败:`, error)
+      this.logger.error(`❌ ${operationName}失败:`, error)
       return false
     }
   }
@@ -35,11 +35,11 @@ const withErrorHandling = (method, operationName = '操作') => {
 // 统一参数操作工具
 const ParameterUtils = {
   // 设置参数值
-  setParameterValue(model, paramId, value, parametersValues) {
+  setParameterValue(model, paramId, value, parametersValues, weight = 1, logger) {
     if (!model?.internalModel?.coreModel) return false
     
     try {
-      model.internalModel.coreModel.setParameterValueById(paramId, value)
+      model.internalModel.coreModel.setParameterValueById(paramId, value, weight)
       
       // 同步更新内部存储
       const paramIndex = parametersValues.parameter?.findIndex(param => param.parameterIds === paramId)
@@ -48,26 +48,26 @@ const ParameterUtils = {
       }
       return true
     } catch (error) {
-      console.error('设置参数失败:', error)
+      logger.error('设置参数失败:', error)
       return false
     }
   },
 
   // 设置部件不透明度
-  setPartOpacity(model, partId, value, parametersValues) {
+  setPartOpacity(model, partId, value, parametersValues, logger) {
     if (!model?.internalModel?.coreModel) return false
     
     try {
       model.internalModel.coreModel.setPartOpacityById(partId, value)
       
       // 同步更新内部存储
-      const partIndex = parametersValues.partOpacity?.findIndex(part => part.partId === partId)
-      if (partIndex !== -1) {
-        parametersValues.partOpacity[partIndex].defaultValue = value
+      const part = parametersValues.partOpacity?.find(p => p.partId === partId)
+      if (part) {
+        part.defaultValue = value
       }
       return true
     } catch (error) {
-      console.error('设置部件不透明度失败:', error)
+      logger.error('设置部件不透明度失败:', error)
       return false
     }
   }
@@ -78,13 +78,13 @@ export class HeroModel {
     this.id = id
     this.model = model
     this._destroyed = false
-    this.debugMode = process.env.NODE_ENV === 'development'
+    this.logger = createLogger(`HeroModel:${this.id}`)
     
     // 模型相关属性
     this.modelName = ''
     this.costume = ''
-    this._modelsetting = null
-    this.modelsetting = null
+    this.cubismModelSettings = null
+    this.rawModelSettings = null
     
     // 缓存数据
     this.cachedExpressions = []
@@ -96,33 +96,6 @@ export class HeroModel {
   }
 
   /**
-   * 日志记录方法
-   * @param {string} level - 日志级别
-   * @param {string} message - 日志消息
-   * @param {...any} args - 额外参数
-   */
-  log(level, message, ...args) {
-    if (!this.debugMode) return
-
-    const prefix = `[HeroModel:${this.id}]`
-    const timestamp = new Date().toISOString()
-
-    switch (level) {
-      case 'error':
-        console.error(`${timestamp} ${prefix} ${message}`, ...args)
-        break
-      case 'warn':
-        console.warn(`${timestamp} ${prefix} ${message}`, ...args)
-        break
-      case 'debug':
-        console.debug(`${timestamp} ${prefix} ${message}`, ...args)
-        break
-      default:
-        console.log(`${timestamp} ${prefix} ${message}`, ...args)
-    }
-  }
-
-  /**
    * 异步创建并加载 Live2D 模型
    * @param {string} src - 模型设置文件的URL或路径
    */
@@ -131,7 +104,7 @@ export class HeroModel {
       // 等待本地 PIXI Live2D 库完全加载
       await waitForLive2D()
 
-      this.log('log', '🔄 [HeroModel] 开始创建模型:', src)
+      this.logger.log('🔄 开始创建模型:', src)
 
       // 获取模型设置 JSON 文件
       const response = await fetch(src)
@@ -142,13 +115,13 @@ export class HeroModel {
       const settingsJSON = await response.json()
       settingsJSON.url = src
 
-      this.log('log', '📄 [HeroModel] 原始设置 JSON:', settingsJSON)
+      this.logger.log('📄 原始设置 JSON:', settingsJSON)
 
       // 使用 PIXI Live2D 创建模型设置实例
       if (!window.PIXI.live2d.Cubism4ModelSettings) {
         throw new Error('❌ 本地 Cubism4ModelSettings 未加载，请检查 /libs/cubism4.min.js')
       }
-      this._modelsetting = new window.PIXI.live2d.Cubism4ModelSettings(settingsJSON)
+      this.cubismModelSettings = new window.PIXI.live2d.Cubism4ModelSettings(settingsJSON)
 
       // 使用 PIXI Live2D 创建模型
       if (!window.PIXI.live2d.Live2DModel) {
@@ -164,7 +137,7 @@ export class HeroModel {
       }
 
       // 保存原始设置 JSON
-      this.modelsetting = settingsJSON
+      this.rawModelSettings = settingsJSON
 
       // 设置初始位置和缩放
       this.model.position.set(0, 0)
@@ -172,7 +145,7 @@ export class HeroModel {
 
       // 等待模型完全加载后初始化参数
       if (this.model.internalModel) {
-        this.initializeParameters()
+        this.initializeParameters();
       } else {
         // 监听模型准备就绪事件
         await new Promise((resolve, reject) => {
@@ -182,7 +155,7 @@ export class HeroModel {
 
           this.model.once('ready', () => {
             clearTimeout(timeout)
-            this.log('log', '📢 [HeroModel] 模型ready事件触发，初始化参数')
+            this.logger.log('📢 模型ready事件触发，初始化参数')
             this.initializeParameters()
             resolve()
           })
@@ -199,7 +172,7 @@ export class HeroModel {
 
       return this
     } catch (error) {
-      this.log('error', '❌ [HeroModel] 创建失败:', error)
+      this.logger.error('❌ 创建失败:', error)
       
       // 清理资源
       if (this.model) {
@@ -207,7 +180,7 @@ export class HeroModel {
           this.model.removeAllListeners()
           this.model.destroy({ children: true, texture: true, baseTexture: true })
         } catch (cleanupError) {
-          this.log('error', '❌ [HeroModel] 清理失败模型时出错:', cleanupError)
+          this.logger.error('❌ 清理失败模型时出错:', cleanupError)
         }
       }
       
@@ -220,100 +193,109 @@ export class HeroModel {
    */
   cacheModelData() {
     // 缓存表情数据
-    this.cachedExpressions = this._modelsetting.expressions || []
+    this.cachedExpressions = this.cubismModelSettings.expressions || []
 
     // 缓存动作数据
-    this.cachedMotions = this._modelsetting.motions || {}
+    this.cachedMotions = this.cubismModelSettings.motions || {}
   }
 
-  /**
-   * 初始化参数值存储
-   */
-  initializeParameters() {
-    if (!this.model) {
-      this.log('warn', '⚠️ [HeroModel] 模型未加载，无法初始化参数')
-      return
+  initializeParameters(retries = 5, delay = 200) {
+    if (this._destroyed) {
+      this.logger.log('模型已销毁，取消参数初始化。');
+      return;
     }
 
-    if (!this.model.internalModel) {
-      this.log('warn', '⚠️ [HeroModel] 内部模型未准备好，监听ready事件...')
-      // 监听模型准备就绪事件
-      this.model.once('ready', () => {
-        this.log('log', '📢 [HeroModel] 模型已准备就绪，重新初始化参数')
-        this.initializeParameters()
-      })
-      return
-    }
-
-    this.parametersValues = {}
-
-    // 初始化呼吸参数 - 使用公共API
-    if (this.model.internalModel.breath) {
-      try {
-        // 使用getParameters()方法获取呼吸参数
-        const breathParams = this.model.internalModel.breath.getParameters()
-        this.parametersValues.breath = breathParams ? [...breathParams] : []
-      } catch (error) {
-        this.log('warn', '⚠️ [HeroModel] 获取呼吸参数失败:', error)
-        this.parametersValues.breath = []
+    if (!this.model || !this.model.internalModel || !this.model.internalModel.coreModel) {
+      this.logger.warn('⚠️ 内部模型或核心模型未准备好，无法初始化参数。');
+      if (retries > 0) {
+        this.logger.log(`[HeroModel] 将在 ${delay}ms 后重试参数初始化... (${retries} 次剩余)`);
+        setTimeout(() => this.initializeParameters(retries - 1, delay), delay);
+      } else {
+        this.logger.error('❌ [HeroModel] 参数初始化失败，已达最大重试次数。');
       }
+      return;
     }
 
-    // 初始化眨眼参数 - 使用公共API
-    if (this.model.internalModel.eyeBlink) {
-      try {
-        // 使用getParameterIds()方法获取眨眼参数
-        const eyeBlinkParams = this.model.internalModel.eyeBlink.getParameterIds()
-        this.parametersValues.eyeBlink = eyeBlinkParams ? [...eyeBlinkParams] : []
-      } catch (error) {
-        this.log('warn', '⚠️ [HeroModel] 获取眨眼参数失败:', error)
-        this.parametersValues.eyeBlink = []
-      }
-    }
+    this.parametersValues = {};
+    this.logger.log('⚙️ [HeroModel] initializeParameters: 开始初始化参数。');
+    const coreModel = this.model.internalModel.coreModel;
 
-    // 初始化所有参数的默认值、最大值和最小值
-    this.parametersValues.parameter = []
-    if (this.model.internalModel.coreModel) {
-      const coreModel = this.model.internalModel.coreModel
+    // 优先从模型设置文件(.model3.json)中读取参数定义
+    this.parametersValues.parameter = [];
+    if (this.rawModelSettings && this.rawModelSettings.Parameters) {
+      const paramDefs = this.rawModelSettings.Parameters;
+      this.logger.log(`⚙️ [HeroModel] 从JSON定义中找到 ${paramDefs.length} 个参数。`);
 
-      try {
-        // 使用公共API获取参数信息
-        const parameterCount = coreModel.getParameterCount()
-        for (let i = 0; i < parameterCount; i++) {
-          // 注意：Cubism4.js没有getParameterId方法，我们需要使用其他方式获取参数ID
-          // 这里我们使用一个安全的方法来获取参数信息
-          const parameter = {
-            parameterIds: `param_${i}`, // 临时ID，实际使用时需要从模型设置中获取
-            max: coreModel.getParameterMaximumValue(i),
-            min: coreModel.getParameterMinimumValue(i),
-            defaultValue: coreModel.getParameterDefaultValue(i)
-          }
-          this.parametersValues.parameter.push(parameter)
+      for (const paramDef of paramDefs) {
+        const paramId = paramDef.Id;
+        const paramIndex = coreModel.getParameterIndex(paramId);
+
+        if (paramIndex === -1) {
+          this.logger.warn(`⚠️ 参数ID "${paramId}" 在核心模型中未找到。`);
+          continue;
         }
-      } catch (error) {
-        this.log('warn', '⚠️ [HeroModel] 获取参数信息失败:', error)
+
+        const parameter = {
+          parameterIds: paramId,
+          max: coreModel.getParameterMaximumValue(paramIndex),
+          min: coreModel.getParameterMinimumValue(paramIndex),
+          defaultValue: coreModel.getParameterDefaultValue(paramIndex)
+        };
+        this.parametersValues.parameter.push(parameter);
       }
+      this.logger.log(`✅ [HeroModel] 已成功从JSON定义初始化 ${this.parametersValues.parameter.length} 个参数。`);
+    } else {
+      // 如果JSON中没有定义，则回退到从 Live2DCubismCore.Model 获取 ID
+      this.logger.warn('⚠️ 在模型JSON中未找到参数定义，回退到核心模型遍历。');
+      
+      // 正确的方式是从 coreModel.getModel() 获取底层模型，然后访问其参数
+      const live2dCoreModel = coreModel.getModel();
+      const parameterIds = live2dCoreModel.parameters.ids;
+      const parameterCount = live2dCoreModel.parameters.count;
+
+      if (parameterCount === 0 && retries > 0) {
+        this.logger.warn(`⚠️ [HeroModel] 发现参数数量为 0，可能模型尚未完全加载。将在 ${delay}ms 后重试。`);
+        setTimeout(() => this.initializeParameters(retries - 1, delay), delay);
+        return;
+      }
+
+      for (let i = 0; i < parameterCount; i++) {
+        const paramId = parameterIds[i];
+        // getParameterIndex is on coreModel (CubismModel), not the Live2DCubismCore.Model
+        const paramIndex = coreModel.getParameterIndex(paramId);
+        if (paramIndex === -1) {
+          this.logger.warn(`⚠️ 参数ID "${paramId}" 在核心模型中未找到索引。`);
+          continue;
+        }
+        this.parametersValues.parameter.push({
+          parameterIds: paramId,
+          max: coreModel.getParameterMaximumValue(paramIndex),
+          min: coreModel.getParameterMinimumValue(paramIndex),
+          defaultValue: coreModel.getParameterDefaultValue(paramIndex)
+        });
+      }
+      this.logger.log(`✅ [HeroModel] 已成功从核心模型遍历初始化 ${this.parametersValues.parameter.length} 个参数。`);
     }
 
-    // 初始化所有部件的默认不透明度
-    this.parametersValues.partOpacity = []
-    if (this.model.internalModel.coreModel) {
-      const coreModel = this.model.internalModel.coreModel
+    // 初始化部件（逻辑不变）
+    this.parametersValues.partOpacity = [];
+    const partCount = coreModel.getPartCount();
+    this.logger.log(`⚙️ [HeroModel] 发现 ${partCount} 个核心模型部件。`);
+    for (let i = 0; i < partCount; i++) {
+      const partId = coreModel.getPartId(i);
+      this.parametersValues.partOpacity.push({
+        partId: partId,
+        defaultValue: coreModel.getPartOpacityByIndex(i)
+      });
+    }
+    this.logger.log(`✅ [HeroModel] 已成功初始化 ${this.parametersValues.partOpacity.length} 个部件。`);
 
-      try {
-        // 使用公共API获取部件信息
-        const partCount = coreModel.getPartCount()
-        for (let i = 0; i < partCount; i++) {
-          const partId = coreModel.getPartId(i)
-          const part = {
-            partId: partId,
-            defaultValue: coreModel.getPartOpacityByIndex(i)
-          }
-          this.parametersValues.partOpacity.push(part)
-        }
-      } catch (error) {
-        this.log('warn', '⚠️ [HeroModel] 获取部件信息失败:', error)
-      }
+    // 新增：健全性检查和重试逻辑
+    // 如果参数列表为空，但部件列表不为空，说明参数可能未正确加载，进行重试
+    if (this.parametersValues.parameter.length === 0 && this.parametersValues.partOpacity.length > 0 && retries > 0) {
+      this.logger.warn(`⚠️ [HeroModel] 参数初始化后数量为0，但部件数量为 ${this.parametersValues.partOpacity.length}。可能存在加载时序问题，将在 ${delay}ms 后重试。`);
+      setTimeout(() => this.initializeParameters(retries - 1, delay), delay);
+      return; // 必须返回，防止后续代码执行
     }
   }
 
@@ -400,7 +382,7 @@ export class HeroModel {
     this.model.breathing = bool
 
     if (!this.model.internalModel?.breath) {
-      this.log('warn', '⚠️ [HeroModel] 呼吸功能不可用')
+      this.logger.warn('⚠️ 呼吸功能不可用')
       return
     }
 
@@ -418,9 +400,9 @@ export class HeroModel {
         this.model.internalModel.breath.setParameters([])
       }
       
-      this.log('log', `🫁 [HeroModel] 呼吸动画已${bool ? '启用' : '禁用'}`)
+      this.logger.log(`🫁 呼吸动画已${bool ? '启用' : '禁用'}`)
     } catch (error) {
-      this.log('error', '❌ [HeroModel] 设置呼吸参数失败:', error)
+      this.logger.error('❌ 设置呼吸参数失败:', error)
     }
   }, '设置呼吸')
 
@@ -431,7 +413,7 @@ export class HeroModel {
   setEyeBlinking = withModelCheck(function(bool) {
     this.model.eyeBlinking = bool
     if (!this.model.internalModel?.eyeBlink) {
-      this.log('warn', '⚠️ [HeroModel] 眨眼功能不可用')
+      this.logger.warn('⚠️ 眨眼功能不可用')
       return
     }
 
@@ -449,9 +431,9 @@ export class HeroModel {
         this.model.internalModel.eyeBlink.setParameterIds([])
       }
       
-      this.log('log', `👁️ [HeroModel] 眨眼动画已${bool ? '启用' : '禁用'}`)
+      this.logger.log(`👁️ 眨眼动画已${bool ? '启用' : '禁用'}`)
     } catch (error) {
-      this.log('error', '❌ [HeroModel] 设置眨眼参数失败:', error)
+      this.logger.error('❌ 设置眨眼参数失败:', error)
     }
   }, '设置眨眼')
 
@@ -461,7 +443,7 @@ export class HeroModel {
    */
   setInteractive = withModelCheck(function(bool) {
     this.model.interactive = bool
-    this.log('log', `🖱️ [HeroModel] 交互性已${bool ? '启用' : '禁用'}`)
+    this.logger.log(`🖱️ 交互性已${bool ? '启用' : '禁用'}`)
   }, '设置交互性')
 
   /**
@@ -485,21 +467,21 @@ export class HeroModel {
   setExpression = withModelCheck(function(index) {
     try {
       if (!this.model.internalModel) {
-        this.log('warn', '⚠️ [HeroModel] 内部模型未准备好')
+        this.logger.warn('⚠️ 内部模型未准备好')
         return false
       }
 
       const expressions = this.model.internalModel.settings.getExpressionDefinitions()
       if (!expressions || !expressions[index]) {
-        this.log('warn', `⚠️ [HeroModel] 表情索引无效: ${index}`)
+        this.logger.warn(`⚠️ 表情索引无效: ${index}`)
         return false
       }
 
       this.model.internalModel.expression(expressions[index].name)
-      this.log('log', `😊 [HeroModel] 表情已播放: ${expressions[index].name}`)
+      this.logger.log(`😊 表情已播放: ${expressions[index].name}`)
       return true
     } catch (error) {
-      this.log('error', '❌ [HeroModel] 播放表情失败:', error)
+      this.logger.error('❌ 播放表情失败:', error)
       return false
     }
   }, '播放表情')
@@ -512,21 +494,29 @@ export class HeroModel {
    */
   playMotion = withErrorHandling(withModelCheck(async function(group, index) {
     if (!this.model.internalModel) {
-      this.log('warn', '⚠️ [HeroModel] 内部模型未准备好')
+      this.logger.warn('⚠️ 内部模型未准备好')
       return false
     }
 
     const motionManager = this.model.internalModel.motionManager
     if (!motionManager) {
-      this.log('warn', '⚠️ [HeroModel] 动作管理器未准备好')
+      this.logger.warn('⚠️ 动作管理器未准备好')
       return false
     }
 
+    // 如果播放的不是待机动作，则在播放结束后自动切换到随机待机动作
+    if (group !== 'idle') {
+      motionManager.once('motionFinish', () => {
+        this.playRandomMotion('idle');
+      });
+    }
+
     const success = await motionManager.startMotion(group, index)
+
     if (success) {
-      this.log('log', `🎬 [HeroModel] 动作已播放: ${group}_${index}`)
+      this.logger.log(`🎬 动作已播放: ${group}_${index}`)
     } else {
-      this.log('warn', `⚠️ [HeroModel] 动作播放失败: ${group}_${index}`)
+      this.logger.warn(`⚠️ 动作播放失败: ${group}_${index}`)
     }
     return success
   }, '播放动作'), '播放动作')
@@ -549,23 +539,28 @@ export class HeroModel {
     }
 
     // 保存参数状态
-    if (this.parametersValues.parameter) {
-      state.parameters = {}
-      this.parametersValues.parameter.forEach(param => {
-        if (this.model.internalModel) {
-          state.parameters[param.parameterIds] = this.model.internalModel.coreModel.getParameterValueById(param.parameterIds)
-        }
-      })
+    state.parameters = {}
+    if (this.model?.internalModel?.coreModel) {
+      const coreModel = this.model.internalModel.coreModel
+      const live2dCoreModel = coreModel.getModel();
+      const parameterCount = live2dCoreModel.parameters.count;
+      const parameterIds = live2dCoreModel.parameters.ids;
+
+      for (let i = 0; i < parameterCount; i++) {
+        const paramId = parameterIds[i];
+        state.parameters[paramId] = coreModel.getParameterValueByIndex(i)
+      }
     }
 
     // 保存部件不透明度状态
-    if (this.parametersValues.partOpacity) {
-      state.partOpacity = {}
-      this.parametersValues.partOpacity.forEach(part => {
-        if (this.model.internalModel) {
-          state.partOpacity[part.partId] = this.model.internalModel.coreModel.getPartOpacityById(part.partId)
-        }
-      })
+    state.partOpacity = {}
+    if (this.model?.internalModel?.coreModel) {
+      const coreModel = this.model.internalModel.coreModel
+      const partCount = coreModel.getPartCount()
+      for (let i = 0; i < partCount; i++) {
+        const partId = coreModel.getPartId(i)
+        state.partOpacity[partId] = coreModel.getPartOpacityByIndex(i)
+      }
     }
 
     return state
@@ -594,22 +589,22 @@ export class HeroModel {
       }
 
       // 还原参数状态
-      if (state.parameters) {
+      if (state.parameters && this.model?.internalModel?.coreModel) {
         Object.entries(state.parameters).forEach(([paramId, value]) => {
-          this.setParameters(paramId, value)
+          this.model.internalModel.coreModel.setParameterValueById(paramId, value)
         })
       }
 
       // 还原部件不透明度状态
-      if (state.partOpacity) {
+      if (state.partOpacity && this.model?.internalModel?.coreModel) {
         Object.entries(state.partOpacity).forEach(([partId, value]) => {
-          this.setPartOpacity(partId, value)
+          this.model.internalModel.coreModel.setPartOpacityById(partId, value)
         })
       }
 
-      this.log('log', '🔄 [HeroModel] 模型状态已还原')
+      this.logger.log('🔄 模型状态已还原')
     } catch (error) {
-      this.log('error', '❌ [HeroModel] 还原状态失败:', error)
+      this.logger.error('❌ 还原状态失败:', error)
     }
   }
 
@@ -654,7 +649,7 @@ export class HeroModel {
   playRandomMotion = withModelCheck(async function(group = null) {
     const availableGroups = Object.keys(this.cachedMotions)
     if (availableGroups.length === 0) {
-      this.log('warn', '⚠️ [HeroModel] 没有可用的动作组')
+      this.logger.warn('⚠️ 没有可用的动作组')
       return false
     }
 
@@ -663,7 +658,7 @@ export class HeroModel {
     const motionGroup = this.cachedMotions[targetGroup]
 
     if (!motionGroup || motionGroup.length === 0) {
-      this.log('warn', '⚠️ [HeroModel] 动作组为空:', targetGroup)
+      this.logger.warn('⚠️ 动作组为空:', targetGroup)
       return false
     }
 
@@ -674,16 +669,52 @@ export class HeroModel {
   }, '播放随机动作')
 
   /**
+   * 停止所有动作
+   */
+  stopAllMotions() {
+    if (!this.model || !this.model.internalModel || !this.model.internalModel.motionManager) {
+      return
+    }
+    this.model.internalModel.motionManager.stopAllMotions()
+  }
+
+  /**
    * 播放随机表情
    */
   playRandomExpression() {
     if (this.cachedExpressions.length === 0) {
-      this.log('warn', '⚠️ [HeroModel] 没有可用的表情')
+      this.logger.warn('⚠️ 没有可用的表情')
       return false
     }
 
     const randomIndex = Math.floor(Math.random() * this.cachedExpressions.length)
     return this.setExpression(randomIndex)
+  }
+
+  /**
+   * 获取当前表情的索引
+   * @returns {number|null} 当前表情的索引，如果没有则返回 null
+   */
+  getCurrentExpressionIndex() {
+    if (!this.model || !this.model.internalModel || !this.model.internalModel.expressionManager) {
+      this.logger.warn('⚠️ 无法获取当前表情：模型或表情管理器未准备好')
+      return null
+    }
+    try {
+      const expressionManager = this.model.internalModel.expressionManager;
+      const currentExpressionName = expressionManager.getCurrentExpression(); // 假设此方法返回当前表情名称
+      
+      if (currentExpressionName) {
+        const index = this.cachedExpressions.findIndex(expr => expr.Name === currentExpressionName);
+        if (index !== -1) {
+          return index;
+        }
+      }
+      return null;
+    } catch (error) {
+      this.logger.error('❌ 获取当前表情索引失败:', error);
+      return null;
+    }
   }
 
   /**
@@ -704,23 +735,28 @@ export class HeroModel {
    * 获取所有参数数据
    */
   getAllParameters() {
-    return this.parametersValues.parameter || []
+    const params = this.parametersValues.parameter || []
+    this.logger.log('⚙️ [HeroModel] getAllParameters: 返回参数数量:', params.length)
+    return params
   }
 
   /**
    * 获取所有部件不透明度数据
    */
   getAllPartOpacity() {
-    return this.parametersValues.partOpacity || []
+    const parts = this.parametersValues.partOpacity || []
+    this.logger.log('⚙️ [HeroModel] getAllPartOpacity: 返回部件数量:', parts.length)
+    return parts
   }
 
   /**
    * 设置参数值 - 使用统一工具
    * @param {string} paramId - 参数ID
    * @param {number} value - 参数值
+   * @param {number} weight - 权重
    */
-  setParameters(paramId, value) {
-    return ParameterUtils.setParameterValue(this.model, paramId, value, this.parametersValues)
+  setParameters(paramId, value, weight = 1) {
+    return ParameterUtils.setParameterValue(this.model, paramId, value, this.parametersValues, weight, this.logger)
   }
 
   /**
@@ -729,7 +765,7 @@ export class HeroModel {
    * @param {number} value - 不透明度值
    */
   setPartOpacity(partId, value) {
-    return ParameterUtils.setPartOpacity(this.model, partId, value, this.parametersValues)
+    return ParameterUtils.setPartOpacity(this.model, partId, value, this.parametersValues, this.logger)
   }
 
   /**
@@ -739,7 +775,7 @@ export class HeroModel {
   setForegroundVisible = withModelCheck(function(visible) {
     if (this.foreground) {
       this.foreground.visible = visible
-      this.log('log', `🎨 [HeroModel] 前景可见性已设置: ${visible}`)
+      this.logger.log(`🎨 前景可见性已设置: ${visible}`)
     }
   }, '设置前景可见性')
 
@@ -755,8 +791,6 @@ export class HeroModel {
     this.setVisible(modelData.visible || true)
     this.setAngle(modelData.angle || 0)
     this.setAlpha(modelData.alpha || 1)
-    this.initializeParameters()
-    this.cacheModelData()
   }
 
   /**
@@ -764,20 +798,18 @@ export class HeroModel {
    */
   destroy() {
     if (this._destroyed) {
-      this.log('warn', '[HeroModel] destroy() called more than once for model:', this.id)
+      this.logger.warn('destroy() called more than once for model:', this.id)
       return
     }
     this._destroyed = true;
-    this.log('log', '🗑️ [HeroModel] 开始销毁模型:', this.id)
+    this.logger.log('🗑️ 开始销毁模型:', this.id)
 
     try {
       // 1. 停止所有动作和表情
-      if (this.model && typeof this.model.stopMotions === 'function') {
-        try {
-          this.model.stopMotions()
-        } catch (e) {
-          this.log('warn', '⚠️ [HeroModel] 停止动作失败:', e)
-        }
+      try {
+        this.stopAllMotions()
+      } catch (e) {
+        this.logger.warn('⚠️ 停止动作失败:', e)
       }
 
       // 2. 移除所有事件监听器
@@ -785,7 +817,7 @@ export class HeroModel {
         try {
           this.model.removeAllListeners()
         } catch (e) {
-          this.log('warn', '⚠️ [HeroModel] 移除事件监听器失败:', e)
+          this.logger.warn('⚠️ 移除事件监听器失败:', e)
         }
       }
 
@@ -794,7 +826,7 @@ export class HeroModel {
         try {
           this.model.parent.removeChild(this.model)
         } catch (e) {
-          this.log('warn', '⚠️ [HeroModel] 从父容器移除失败:', e)
+          this.logger.warn('⚠️ 从父容器移除失败:', e)
         }
       }
 
@@ -808,7 +840,7 @@ export class HeroModel {
             this.foreground.destroy({ children: true, texture: true, baseTexture: true })
           }
         } catch (e) {
-          this.log('warn', '⚠️ [HeroModel] 销毁前景对象失败:', e)
+          this.logger.warn('⚠️ 销毁前景对象失败:', e)
         }
         this.foreground = null
       }
@@ -824,16 +856,16 @@ export class HeroModel {
                     child.destroy({ children: true, texture: true, baseTexture: true })
                   }
                 } catch (e) {
-                  this.log('warn', '⚠️ [HeroModel] 销毁子对象失败:', e)
+                  this.logger.warn('⚠️ 销毁子对象失败:', e)
                 }
               })
             }
             this.model.destroy({ children: true, texture: true, baseTexture: true })
           } else {
-            this.log('warn', '⚠️ [HeroModel] 模型对象没有 destroy 方法')
+            this.logger.warn('⚠️ 模型对象没有 destroy 方法')
           }
         } catch (e) {
-          this.log('warn', '⚠️ [HeroModel] 销毁主模型失败:', e)
+          this.logger.warn('⚠️ 销毁主模型失败:', e)
         }
         // 现在再置空内部模型和相关属性
         if (this.model.internalModel) {
@@ -843,15 +875,15 @@ export class HeroModel {
       }
 
       // 6. 清理其他资源
-      this._modelsetting = null
-      this.modelsetting = null
+      this.cubismModelSettings = null
+      this.rawModelSettings = null
       this.parametersValues = {}
       this.cachedExpressions = []
       this.cachedMotions = {}
 
-      this.log('log', '✅ [HeroModel] 模型销毁完成:', this.id)
+      this.logger.log('✅ 模型销毁完成:', this.id)
     } catch (error) {
-      this.log('error', '❌ [HeroModel] 销毁模型失败:', error)
+      this.logger.error('❌ 销毁模型失败:', error)
       throw error
     }
   }
@@ -867,21 +899,21 @@ export class HeroModel {
       // 尝试从模型设置中获取尺寸信息
       let modelWidth, modelHeight
       
-      if (this.modelsetting && this.modelsetting.CanvasSize) {
+      if (this.rawModelSettings && this.rawModelSettings.CanvasSize) {
         // 从模型设置中获取画布尺寸
-        modelWidth = this.modelsetting.CanvasSize.Width
-        modelHeight = this.modelsetting.CanvasSize.Height
-        this.log('log', '📐 [HeroModel] 从模型设置获取尺寸:', { modelWidth, modelHeight })
+        modelWidth = this.rawModelSettings.CanvasSize.Width
+        modelHeight = this.rawModelSettings.CanvasSize.Height
+        this.logger.log('📐 从模型设置获取尺寸:', { modelWidth, modelHeight })
       } else {
         // 从核心模型获取尺寸
         const coreModel = this.model.internalModel.coreModel
         modelWidth = coreModel.getCanvasWidth()
         modelHeight = coreModel.getCanvasHeight()
-        this.log('log', '📐 [HeroModel] 从核心模型获取尺寸:', { modelWidth, modelHeight })
+        this.logger.log('📐 从核心模型获取尺寸:', { modelWidth, modelHeight })
       }
 
       if (!modelWidth || !modelHeight) {
-        this.log('warn', '⚠️ [HeroModel] 无法获取模型原始尺寸，使用默认缩放')
+        this.logger.warn('⚠️ 无法获取模型原始尺寸，使用默认缩放')
         this.setScale(0.2)
         this.model.position.set(canvasWidth / 2, canvasHeight / 2)
         return false
@@ -889,7 +921,7 @@ export class HeroModel {
 
       // 如果尺寸看起来不合理（太小），使用默认缩放并居中
       if (modelWidth < 100 || modelHeight < 100) {
-        this.log('warn', '⚠️ [HeroModel] 模型尺寸异常，使用默认缩放:', { modelWidth, modelHeight })
+        this.logger.warn('⚠️ 模型尺寸异常，使用默认缩放:', { modelWidth, modelHeight })
         this.setScale(0.2)
         this.model.position.set(canvasWidth / 2, canvasHeight / 2)
         return false
@@ -899,7 +931,7 @@ export class HeroModel {
       const modelAspectRatio = modelWidth / modelHeight
       const canvasAspectRatio = canvasWidth / canvasHeight
 
-      this.log('log', '📐 [HeroModel] 尺寸分析:', {
+      this.logger.log('📐 尺寸分析:', {
         模型尺寸: `${modelWidth}x${modelHeight}`,
         模型宽高比: modelAspectRatio.toFixed(3),
         画布尺寸: `${canvasWidth}x${canvasHeight}`,
@@ -911,7 +943,7 @@ export class HeroModel {
       // 根据模型和画布的宽高比决定适配策略
       if (modelAspectRatio > canvasAspectRatio) {
         // 横屏模型：优先适配宽度，使用更保守的缩放
-        this.log('log', '📐 [HeroModel] 检测到横屏模型，优先适配宽度')
+        this.logger.log('📐 检测到横屏模型，优先适配宽度')
         const maxWidth = canvasWidth * 0.8 // 留20%边距
         finalScale = maxWidth / modelWidth
         
@@ -921,11 +953,11 @@ export class HeroModel {
           const maxHeight = canvasHeight * 0.9
           const heightScale = maxHeight / modelHeight
           finalScale = Math.min(finalScale, heightScale)
-          this.log('log', '📐 [HeroModel] 高度超出限制，调整缩放比例')
+          this.logger.log('📐 高度超出限制，调整缩放比例')
         }
       } else {
         // 竖屏模型：优先适配高度，使用更保守的缩放
-        this.log('log', '📐 [HeroModel] 检测到竖屏模型，优先适配高度')
+        this.logger.log('📐 检测到竖屏模型，优先适配高度')
         const targetHeight = canvasHeight * targetHeightRatio
         finalScale = targetHeight / modelHeight
         
@@ -935,7 +967,7 @@ export class HeroModel {
           const maxWidth = canvasWidth * 0.9
           const widthScale = maxWidth / modelWidth
           finalScale = Math.min(finalScale, widthScale)
-          this.log('log', '📐 [HeroModel] 宽度超出限制，调整缩放比例')
+          this.logger.log('📐 宽度超出限制，调整缩放比例')
         }
       }
 
@@ -956,7 +988,7 @@ export class HeroModel {
       // 设置位置
       this.model.position.set(centerX, centerY)
 
-      this.log('log', '📐 [HeroModel] 模型已适应画布大小:', {
+      this.logger.log('📐 模型已适应画布大小:', {
         画布尺寸: `${canvasWidth}x${canvasHeight}`,
         模型原始尺寸: `${modelWidth}x${modelHeight}`,
         缩放比例: finalScale.toFixed(3),
@@ -967,7 +999,7 @@ export class HeroModel {
 
       return true
     } catch (error) {
-      this.log('error', '❌ [HeroModel] 适应画布大小失败:', error)
+      this.logger.error('❌ 适应画布大小失败:', error)
       // 降级到默认缩放并居中
       this.setScale(0.2)
       this.model.position.set(canvasWidth / 2, canvasHeight / 2)
@@ -991,7 +1023,7 @@ export class HeroModel {
         height: coreModel.getCanvasHeight()
       }
     } catch (error) {
-      this.log('error', '❌ [HeroModel] 获取模型原始尺寸失败:', error)
+      this.logger.error('❌ 获取模型原始尺寸失败:', error)
       return null
     }
   }
@@ -1019,10 +1051,10 @@ export class HeroModel {
       this.setAngle(0)
       this.setAlpha(1)
 
-      this.log('log', '🔄 [HeroModel] 模型已重置到默认状态')
+      this.logger.log('🔄 模型已重置到默认状态')
       return true
     } catch (error) {
-      this.log('error', '❌ [HeroModel] 重置模型失败:', error)
+      this.logger.error('❌ 重置模型失败:', error)
       return false
     }
   }, '重置模型')
@@ -1034,10 +1066,10 @@ export class HeroModel {
   forceDefaultScale = withModelCheck(function(defaultScale = 0.2) {
     try {
       this.setScale(defaultScale)
-      this.log('log', '📐 [HeroModel] 强制使用默认缩放:', defaultScale)
+      this.logger.log('📐 强制使用默认缩放:', defaultScale)
       return true
     } catch (error) {
-      this.log('error', '❌ [HeroModel] 设置默认缩放失败:', error)
+      this.logger.error('❌ 设置默认缩放失败:', error)
       return false
     }
   }, '设置默认缩放')

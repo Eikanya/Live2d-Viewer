@@ -285,15 +285,9 @@ const channelOptions = [
   { label: '立体声', value: 2 }
 ]
 
-// 状态
-const isInitialized = ref(false)
-const isRecording = ref(false)
-const isPlaying = ref(false)
-const audioLevel = ref(0)
 
-// 定时器
-let levelTimer = null
-let statusTimer = null
+// 动画帧
+let animationFrameId = null
 
 // 初始化音频系统
 const handleInitialize = async () => {
@@ -321,8 +315,8 @@ const handleRequestPermission = async () => {
 const updateVADSettings = async () => {
   try {
     const settings = {
-      positiveSpeechThreshold: audioStore.audioSettings.vadSettings.positiveSpeechThreshold,
-      negativeSpeechThreshold: audioStore.audioSettings.vadSettings.negativeSpeechThreshold,
+      positiveSpeechThreshold: audioStore.audioSettings.vadSettings.positiveSpeechThreshold / 100,
+      negativeSpeechThreshold: audioStore.audioSettings.vadSettings.negativeSpeechThreshold / 100,
       redemptionFrames: audioStore.audioSettings.vadSettings.redemptionFrames
     }
     await audioStore.updateVADSettings(settings)
@@ -345,12 +339,12 @@ const updateAudioSettings = async () => {
 
 // 更新音频电平
 const updateAudioLevel = () => {
-  audioLevel.value = audioStore.audioLevel
+  // No longer needed as we use audioStore.audioLevel directly
 }
 
 // 更新播放状态
 const updatePlaybackStatus = () => {
-  isPlaying.value = audioStore.isPlaying
+  // No longer needed as we use audioStore.isPlaying directly
 }
 
 // 检查音频系统状态
@@ -386,16 +380,23 @@ const handleRecord = async () => {
   }
 }
 
+// 动画循环
+const animationLoop = () => {
+  updateAudioLevel()
+  updatePlaybackStatus()
+  animationFrameId = requestAnimationFrame(animationLoop)
+}
+
 // 初始化
 onMounted(() => {
   checkAudioStatus()
-  levelTimer = setInterval(updateAudioLevel, 100)
-  statusTimer = setInterval(updatePlaybackStatus, 100)
+  animationFrameId = requestAnimationFrame(animationLoop)
 })
 
 onUnmounted(() => {
-  if (levelTimer) clearInterval(levelTimer)
-  if (statusTimer) clearInterval(statusTimer)
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId)
+  }
 })
 </script>
 

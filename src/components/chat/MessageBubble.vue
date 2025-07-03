@@ -31,7 +31,6 @@
                 </svg>
               </n-icon>
               <n-text depth="3" style="font-size: 12px;">
-                包含音频回复
               </n-text>
             </n-space>
           </div>

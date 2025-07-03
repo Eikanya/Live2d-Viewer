@@ -56,13 +56,12 @@ const StateSyncUtils = {
     try {
       const parameters = {}
       const coreModel = model.internalModel.coreModel
-      
-      // 使用公共API获取参数信息
-      const parameterCount = coreModel.getParameterCount()
+      const live2dCoreModel = coreModel.getModel();
+      const parameterCount = live2dCoreModel.parameters.count;
+      const parameterIds = live2dCoreModel.parameters.ids;
+
       for (let i = 0; i < parameterCount; i++) {
-        // 注意：Cubism4.js没有getParameterId方法，我们需要使用其他方式
-        // 这里我们使用索引作为临时ID
-        const paramId = `param_${i}`
+        const paramId = parameterIds[i];
         parameters[paramId] = coreModel.getParameterValueByIndex(i)
       }
       
@@ -426,17 +425,6 @@ export class Live2DStateSyncManager {
     }
   }
 
-  /**
-   * 向后兼容的恢复模型状态方法
-   * @param {string} modelId - 模型ID
-   * @param {Object} model - 模型实例
-   * @returns {boolean} 是否成功恢复
-   * @deprecated 使用 restoreStateFromCache(modelId, model) 替代
-   */
-  restoreModelState(modelId, model) {
-    console.warn('⚠️ [StateSyncManager] restoreModelState已废弃，请使用restoreStateFromCache')
-    return this.restoreStateFromCache(modelId, model)
-  }
 
   /**
    * 清理资源
@@ -450,7 +438,7 @@ export class Live2DStateSyncManager {
       
       // 清理定时器
       this.syncTimers.forEach(timerId => {
-        globalResourceManager.clearTimeout(timerId)
+        clearTimeout(timerId)
       })
       this.syncTimers.clear()
       
@@ -472,13 +460,6 @@ export class Live2DStateSyncManager {
     }
   }
 
-  /**
-   * 销毁管理器（cleanup的别名）
-   */
-  destroy() {
-    console.warn('⚠️ [StateSyncManager] destroy已废弃，请使用cleanup')
-    return this.cleanup()
-  }
 
   /**
    * 与 Live2D Store 集成
@@ -529,4 +510,4 @@ export const globalStateSyncManager = new Live2DStateSyncManager()
 // 注册页面卸载时的清理
 globalResourceManager.registerGlobalEventListener('state-sync-cleanup', 'beforeunload', () => {
   globalStateSyncManager.cleanup()
-}) 
+})

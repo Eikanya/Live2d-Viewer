@@ -116,6 +116,9 @@ class AudioService {
       this.audioContext = new (window.AudioContext || window.webkitAudioContext)({
         sampleRate: this.sampleRate
       })
+
+      // 加载 AudioWorklet 模块
+      await this.audioContext.audioWorklet.addModule('src/services/audio-processor.js')
       
       this.isInitialized = true
       log('音频服务初始化成功')
@@ -157,12 +160,11 @@ class AudioService {
       this.audioSource = this.audioContext.createMediaStreamSource(this.mediaStream)
       
       // 创建音频处理器
-      this.audioProcessor = this.audioContext.createScriptProcessor(this.frameSize, 1, 1)
+      this.audioProcessor = new AudioWorkletNode(this.audioContext, 'audio-processor')
       
       // 设置音频处理回调
-      this.audioProcessor.onaudioprocess = (e) => {
-        const inputData = e.inputBuffer.getChannelData(0)
-        this.processAudioData(inputData)
+      this.audioProcessor.port.onmessage = (event) => {
+        this.processAudioData(event.data)
       }
 
       // 连接音频节点
@@ -389,6 +391,18 @@ class AudioService {
     } catch (error) {
       log('设置音量失败:', error)
       throw error
+    }
+  }
+
+  /**
+   * 更新设置
+   */
+  updateSettings(settings) {
+    if (settings.volume !== undefined) {
+      this.setVolume(settings.volume)
+    }
+    if (settings.playbackSpeed !== undefined) {
+      this.setPlaybackSpeed(settings.playbackSpeed)
     }
   }
 

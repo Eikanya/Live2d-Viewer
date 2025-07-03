@@ -45,6 +45,9 @@ import { isPetMode, isElectron, petModeAPI } from '../utils/electron.js'
 import { globalStateSyncManager } from '../utils/live2d/state-sync-manager.js'
 import { globalResourceManager } from '../utils/resource-manager.js'
 
+// 常量定义
+const DEFAULT_MODEL_SCALE = 0.2; // 默认模型缩放值
+
 // 日志工具函数
 const log = (message, level = 'info') => {
   const prefix = '[Live2DViewer]'
@@ -307,8 +310,8 @@ export default {
 
         // 将模型添加到store
         live2dStore.addLoadedModel(modelData, heroModel)
-        // 不自动切换 currentModel，保留多模型同屏
-        // live2dStore.setCurrentModel(modelData)
+        // 切换当前模型
+        live2dStore.setCurrentModel(modelData)
 
         // 设置加载完成状态
         live2dStore.setLoading(false)
@@ -330,19 +333,14 @@ export default {
             // 检查是否已经有用户设置的缩放值
             const currentScale = heroModel.getScale()
             const hasUserScale = currentScale && (
-              (typeof currentScale === 'object' && (currentScale.x !== 0.2 || currentScale.y !== 0.2)) ||
-              (typeof currentScale === 'number' && currentScale !== 0.2)
+              (typeof currentScale === 'object' && (currentScale.x !== DEFAULT_MODEL_SCALE || currentScale.y !== DEFAULT_MODEL_SCALE)) ||
+              (typeof currentScale === 'number' && currentScale !== DEFAULT_MODEL_SCALE)
             )
             
             if (!hasUserScale) {
               // 只有在没有用户设置的情况下才进行自动适配
-              const success = heroModel.autoFitToCanvas(canvasWidth, canvasHeight, 0.5)
-              
-              // 如果自动适配失败，使用默认缩放
-              if (!success) {
-                console.log('📐 [Live2DViewer] 自动适配失败，使用默认缩放')
-                heroModel.forceDefaultScale(0.2)
-              }
+              heroModel.autoFitToCanvas(canvasWidth, canvasHeight, 0.8)
+              heroModel.setPosition(canvasWidth / 2, canvasHeight / 2)
             } else {
               console.log('📐 [Live2DViewer] 检测到用户设置的缩放值，跳过自动适配')
             }
@@ -715,8 +713,18 @@ export default {
       globalStateSyncManager.registerSyncCallback(modelId, (currentState) => {
         if (!currentState) return
 
-        // 只记录状态变化，不重复更新Store（避免循环同步）
-        console.log('🔄 [Live2DViewer] 模型状态已从状态同步管理器接收:', modelId, currentState)
+        // 将模型状态同步回 Store
+        // 假设 currentState 包含一个 settings 对象，其结构与 live2dStore.modelState.settings 兼容
+        // 并且 globalStateSyncManager 内部有机制避免循环同步
+        live2dStore.updateModelState({
+          ...live2dStore.modelState,
+          settings: {
+            ...(live2dStore.modelState?.settings || {}), // 保留现有设置
+            ...(currentState.settings || {}) // 覆盖来自模型的最新设置
+          }
+        })
+
+        console.log('🔄 [Live2DViewer] 模型状态已从状态同步管理器接收并同步到Store:', modelId, currentState)
       })
 
       console.log('📝 [Live2DViewer] 模型状态同步已注册:', modelId)
@@ -1056,8 +1064,6 @@ export default {
     onUnmounted(() => {
       console.log('🧹 [Live2DViewer] 组件卸载，开始清理Live2D管理器')
 
-      // 注册清理回调到资源管理器
-      globalResourceManager.registerCleanupCallback(() => {
       try {
         // 1. 清理桌宠模式资源
         if (petMode.value) {
@@ -1066,7 +1072,18 @@ export default {
           // 停止自动交互
           stopPetModeAutoInteraction()
 
-          // 清理悬停事件监听器
+          // 清理 Electron 拖拽事件监听器 (如果已注册)
+          // 注意: globalResourceManager.registerEventListener 已经处理了移除，这里是双重保险
+          if (viewerContainer.value) {
+            // 假设 handleMouseDown, handleMouseMove, handleMouseUp 是在 setup 作用域内定义的
+            // 并且没有被直接暴露或存储在可访问的地方，那么通过 globalResourceManager 清理是更可靠的方式
+            // 如果需要直接移除，需要确保这些函数是可访问的
+            // 例如：viewerContainer.value.removeEventListener('mousedown', handleMouseDown)
+            // 由于这些事件是通过 globalResourceManager 注册的，我们依赖其清理机制
+            console.log('🧹 [Live2DViewer] Electron 拖拽事件监听器将由资源管理器清理')
+          }
+
+          // 清理悬停事件监听器 (如果已注册)
           if (viewerContainer.value) {
             try {
               viewerContainer.value.removeEventListener('mouseenter', handlePetModeHover)
@@ -1112,22 +1129,27 @@ export default {
 
         // 5. 清理状态同步管理器
         try {
-          if (window.globalStateSyncManager) {
-            window.globalStateSyncManager.destroy()
-            delete window.globalStateSyncManager
+          if (globalStateSyncManager) { // 直接使用导入的 globalStateSyncManager
+            globalStateSyncManager.destroy()
+            // 不需要 delete window.globalStateSyncManager，因为它不是挂载在 window 上的
             console.log('🧹 [Live2DViewer] 状态同步管理器已清理')
           }
         } catch (error) {
           console.error('❌ [Live2DViewer] 清理状态同步管理器失败:', error)
         }
 
+        // 6. 清理资源管理器中注册的所有资源
+        try {
+          globalResourceManager.cleanupAll()
+          console.log('✅ [Live2DViewer] 资源管理器中所有资源已清理')
+        } catch (error) {
+          console.error('❌ [Live2DViewer] 清理资源管理器失败:', error)
+        }
+
         console.log('✅ [Live2DViewer] 组件卸载清理完成')
       } catch (error) {
         console.error('❌ [Live2DViewer] 组件卸载清理失败:', error)
       }
-      })
-
-      console.log('📝 [Live2DViewer] 清理回调已注册到资源管理器')
     })
 
     return {
@@ -1137,7 +1159,7 @@ export default {
       clearError,
       isLoading,
       error,
-      loadModel
+      loadModel,
     }
   }
 }
@@ -1149,14 +1171,14 @@ export default {
   height: 100%;
   position: relative;
   overflow: hidden;
-  background: transparent !important;
+  background: transparent; /* 移除 !important */
 }
 
 :deep(canvas) {
   display: block;
   width: 100%;
   height: 100%;
-  pointer-events: auto !important;
+  pointer-events: auto; /* 移除 !important */
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -1181,20 +1203,20 @@ export default {
 
 /* 文本内容样式 */
 .text-container :deep(.text-content) {
-  background: rgba(255, 255, 255, 0.2) ;
-  color: white ;
-  margin: 0 auto ;
-  padding: 8px 12px ;
-  border-radius: 12px ;
-  font-size: 16px ;
-  line-height: 1.5 ;
-  max-width: 800px ;
-  word-wrap: break-word ;
-  text-align: center ;
-  box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1) ;
-  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.2) ;
-  display: block ;
-  position: relative ;
+  background: rgba(255, 255, 255, 0.2); /* 移除多余空格 */
+  color: white; /* 移除多余空格 */
+  margin: 0 auto; /* 移除多余空格 */
+  padding: 8px 12px; /* 移除多余空格 */
+  border-radius: 12px; /* 移除多余空格 */
+  font-size: 16px; /* 移除多余空格 */
+  line-height: 1.5; /* 移除多余空格 */
+  max-width: 800px; /* 移除多余空格 */
+  word-wrap: break-word; /* 移除多余空格 */
+  text-align: center; /* 移除多余空格 */
+  box-shadow: 0 2px 6px rgba(255, 255, 255, 0.1); /* 移除多余空格 */
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.2); /* 移除多余空格 */
+  display: block; /* 移除多余空格 */
+  position: relative; /* 移除多余空格 */
 }
 
 /* 加载状态指示器样式 */

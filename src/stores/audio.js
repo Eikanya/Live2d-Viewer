@@ -210,6 +210,17 @@ export const useAudioStore = defineStore('audio', () => {
 
   const isReady = computed(() => isInitialized.value && microphonePermission.value === 'granted')
 
+  // 请求麦克风权限
+  const requestMicrophonePermission = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true })
+      await checkMicrophonePermission()
+    } catch (error) {
+      log(`请求麦克风权限失败: ${error.message}`, 'error')
+      throw error
+    }
+  }
+
   // 检查麦克风权限
   const checkMicrophonePermission = async () => {
     try {
@@ -224,8 +235,7 @@ export const useAudioStore = defineStore('audio', () => {
       microphonePermission.value = result.state
       
       // 3. 监听权限变化
-      navigator.permissions.onchange = (event) => {
-        const result = event.target
+      result.onchange = () => {
         log(`麦克风权限状态变化: ${result.state}`, 'debug')
         microphonePermission.value = result.state
       }
@@ -391,10 +401,8 @@ export const useAudioStore = defineStore('audio', () => {
       }
 
       // 如果 AI 正在说话，先停止
-      if (isPlaying.value && currentAudio.value) {
-        currentAudio.value.pause()
-        currentAudio.value = null
-        isPlaying.value = false
+      if (isPlaying.value) {
+        stopPlayback()
       }
 
       // 播放新的音频
@@ -553,6 +561,7 @@ export const useAudioStore = defineStore('audio', () => {
 
     // 方法
     initializeAudio,
+    requestMicrophonePermission,
     checkMicrophonePermission,
     startRecording,
     stopRecording,

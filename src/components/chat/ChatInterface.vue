@@ -262,126 +262,125 @@
         </n-scrollbar>
       </n-modal>
 
-      <!-- 历史记录抽屉 -->
-      <n-drawer
+      <!-- 历史记录模态框 -->
+      <n-modal
         v-model:show="showHistoryDrawer"
-        :width="400"
-        placement="right"
-        :trap-focus="false"
-        :block-scroll="false"
+        preset="card"
+        title="历史记录"
+        style="width: 600px; max-height: 80vh;"
+        :bordered="false"
+        :segmented="true"
       >
-        <n-drawer-content title="历史记录">
-          <template #header-extra>
-            <n-space>
-              <n-button
-                size="small"
-                @click="handleRefreshHistory"
-                :loading="isLoadingHistory"
-                quaternary
-              >
-                <template #icon>
-                  <n-icon>
-                    <svg viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-                    </svg>
-                  </n-icon>
-                </template>
-                刷新
-              </n-button>
-              <n-button
-                type="primary"
-                size="small"
-                @click="handleCreateNewHistory"
-                :disabled="!webSocketStore.isConnected"
-              >
-                <template #icon>
-                  <n-icon>
-                    <svg viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-                    </svg>
-                  </n-icon>
-                </template>
-                新建对话
-              </n-button>
-            </n-space>
-          </template>
-
-          <!-- 历史记录列表 -->
-          <div v-if="isLoadingHistory" class="history-loading">
-            <n-space justify="center" align="center" style="height: 200px;">
-              <n-spin size="medium">
-                <template #description>
-                  <n-text depth="3">正在加载历史记录...</n-text>
-                </template>
-              </n-spin>
-            </n-space>
-          </div>
-
-          <n-scrollbar v-else style="max-height: calc(100vh - 200px);">
-            <n-list v-if="sortedHistoryList.length > 0">
-              <n-list-item
-                v-for="history in sortedHistoryList"
-                :key="getHistoryId(history)"
-                :class="['history-item', { 'history-item-selected': isCurrentHistory(history) }]"
-                @click="handleSwitchHistory(getHistoryId(history))"
-              >
-                <n-thing>
-                  <template #header>
-                    <n-space align="center" justify="space-between">
-                      <n-text
-                        :class="{ 'history-title-current': isCurrentHistory(history) }"
-                        style="font-weight: 500;"
-                      >
-                        {{ history.title || '未命名对话' }}
-                      </n-text>
-                      <n-space size="small">
-                        <n-tag size="small" type="info">
-                          {{ getHistoryMessageCount(history) }} 条消息
-                        </n-tag>
-                        <n-button
-                          v-if="!isCurrentHistory(history)"
-                          size="tiny"
-                          type="error"
-                          secondary
-                          @click.stop="handleDeleteHistory(getHistoryId(history))"
-                        >
-                          <template #icon>
-                            <n-icon>
-                              <svg viewBox="0 0 24 24">
-                                <path fill="currentColor" d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z"/>
-                              </svg>
-                            </n-icon>
-                          </template>
-                        </n-button>
-                      </n-space>
-                    </n-space>
-                  </template>
-                  <template #description>
-                    <n-text depth="3" style="font-size: 12px;">
-                      {{ formatTime(getHistoryTimestamp(history)) }}
-                    </n-text>
-                  </template>
-                </n-thing>
-              </n-list-item>
-            </n-list>
-
-            <n-empty v-else description="暂无历史记录" class="history-empty">
+        <template #header-extra>
+          <n-space>
+            <n-button
+              size="small"
+              @click="handleRefreshHistory"
+              :loading="isLoadingHistory"
+              quaternary
+            >
               <template #icon>
-                <n-icon size="48" color="var(--n-text-color-disabled)">
+                <n-icon>
                   <svg viewBox="0 0 24 24">
-                    <path fill="currentColor" d="M13 3c-4.97 0-9 4.03-9 9H1l4 3.99L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+                    <path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                   </svg>
                 </n-icon>
               </template>
-              <template #extra>
-                <n-button size="small" @click="handleCreateNewHistory">
-                  创建第一个对话
-                </n-button>
+              刷新
+            </n-button>
+            <n-button
+              type="primary"
+              size="small"
+              @click="handleCreateNewHistory"
+              :disabled="!webSocketStore.isConnected"
+            >
+              <template #icon>
+                <n-icon>
+                  <svg viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                  </svg>
+                </n-icon>
               </template>
-            </n-empty>
-          </n-scrollbar>
-        </n-drawer-content>
-      </n-drawer>
+              新建对话
+            </n-button>
+          </n-space>
+        </template>
+
+        <!-- 历史记录列表 -->
+        <div v-if="isLoadingHistory" class="history-loading">
+          <n-space justify="center" align="center" style="height: 200px;">
+            <n-spin size="medium">
+              <template #description>
+                <n-text depth="3">正在加载历史记录...</n-text>
+              </template>
+            </n-spin>
+          </n-space>
+        </div>
+
+        <n-scrollbar v-else style="max-height: calc(60vh);">
+          <n-list v-if="sortedHistoryList.length > 0">
+            <n-list-item
+              v-for="history in sortedHistoryList"
+              :key="getHistoryId(history)"
+              :class="['history-item', { 'history-item-selected': isCurrentHistory(history) }]"
+              @click="handleSwitchHistory(getHistoryId(history))"
+            >
+              <n-thing>
+                <template #header>
+                  <n-space align="center" justify="space-between">
+                    <n-text
+                      :class="{ 'history-title-current': isCurrentHistory(history) }"
+                      style="font-weight: 500;"
+                    >
+                      {{ history.title || '未命名对话' }}
+                    </n-text>
+                    <n-space size="small">
+                      <n-tag size="small" type="info">
+                        {{ getHistoryMessageCount(history) }} 条消息
+                      </n-tag>
+                      <n-button
+                        v-if="!isCurrentHistory(history)"
+                        size="tiny"
+                        type="error"
+                        secondary
+                        @click.stop="handleDeleteHistory(getHistoryId(history))"
+                      >
+                        <template #icon>
+                          <n-icon>
+                            <svg viewBox="0 0 24 24">
+                              <path fill="currentColor" d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12Z"/>
+                            </svg>
+                          </n-icon>
+                        </template>
+                      </n-button>
+                    </n-space>
+                  </n-space>
+                </template>
+                <template #description>
+                  <n-text depth="3" style="font-size: 12px;">
+                    {{ formatTime(getHistoryTimestamp(history)) }}
+                  </n-text>
+                </template>
+              </n-thing>
+            </n-list-item>
+          </n-list>
+
+          <n-empty v-else description="暂无历史记录" class="history-empty">
+            <template #icon>
+              <n-icon size="48" color="var(--n-text-color-disabled)">
+                <svg viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M13 3c-4.97 0-9 4.03-9 9H1l4 3.99L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+                </svg>
+              </n-icon>
+            </template>
+            <template #extra>
+              <n-button size="small" @click="handleCreateNewHistory">
+                创建第一个对话
+              </n-button>
+            </template>
+          </n-empty>
+        </n-scrollbar>
+      </n-modal>
     </div>
     </n-scrollbar>
   </div>
@@ -880,4 +879,4 @@ onMounted(() => {
     width: 100% !important;
   }
 }
-</style> 
+</style>

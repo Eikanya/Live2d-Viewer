@@ -64,92 +64,73 @@
                 <n-form :model="modelSettings" label-placement="left" label-width="80">
                   <n-space vertical size="medium">
                     <!-- 大小控制 -->
-                    <n-form-item label="大小">
-                      <n-space vertical style="width: 100%;">
-                        <n-slider
-                          :value="modelSettings.scale"
-                          :min="0"
-                          :max="10"
-                          :step="0.01"
-                          @update:value="(value) => { modelSettings.scale = value; updateScale(); }"
-                          :tooltip="true"
-                        />
-                        <n-space>
-                    
-                          <n-button @click="resetScale" size="small" secondary>
-                            <template #icon>
-                              <n-icon>
-                                <svg viewBox="0 0 24 24">
-                                  <path fill="currentColor" d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-                                </svg>
-                              </n-icon>
-                            </template>
-                            重置
-                          </n-button>
-                        </n-space>
-                      </n-space>
-                    </n-form-item>
+                    <setting-slider
+                      label="大小"
+                      :model-value="modelSettings.scale"
+                      :min="0"
+                      :max="10"
+                      :step="0.01"
+                      :default-value="0.2"
+                      :show-min-max-input="false"
+                      :show-reset-button="true"
+                      :updater="currentHeroModel?.setScale"
+                      @update:model-value="val => modelSettings.scale = val"
+                      @reset="resetScale"
+                    />
 
                     <!-- 旋转控制 -->
-                    <n-form-item label="旋转">
-                      <n-space vertical style="width: 100%;">
-                        <n-slider
-                          :value="modelSettings.rotation"
-                          :min="0"
-                          :max="360"
-                          :step="1"
-                          @update:value="(value) => { modelSettings.rotation = value; updateRotation(); }"
-                          :tooltip="true"
-                        />
-                      
-                      </n-space>
-                    </n-form-item>
+                    <setting-slider
+                      label="旋转"
+                      :model-value="modelSettings.rotation"
+                      :min="0"
+                      :max="360"
+                      :step="1"
+                      :default-value="0"
+                      :show-min-max-input="false"
+                      :updater="currentHeroModel?.setAngle"
+                      @update:model-value="val => modelSettings.rotation = val"
+                    />
 
                     <n-divider style="margin: 8px 0;" />
 
                     <!-- 开关控制 -->
                     <n-space vertical size="medium">
-                      <n-space justify="space-between" align="center">
-                        <span>呼吸动画</span>
-                        <n-switch
-                          :value="modelSettings.breathing"
-                          @update:value="(value) => { modelSettings.breathing = value; updateBreathing(); }"
-                        />
-                      </n-space>
+                      <setting-switch
+                        label="呼吸动画"
+                        :model-value="modelSettings.breathing"
+                        :updater="currentHeroModel?.setBreathing"
+                        @update:model-value="val => modelSettings.breathing = val"
+                      />
 
-                      <n-space justify="space-between" align="center">
-                        <span>眨眼动画</span>
-                        <n-switch
-                          :value="modelSettings.eyeBlinking"
-                          @update:value="(value) => { modelSettings.eyeBlinking = value; updateEyeBlinking(); }"
-                        />
-                      </n-space>
+                      <setting-switch
+                        label="眨眼动画"
+                        :model-value="modelSettings.eyeBlinking"
+                        :updater="currentHeroModel?.setEyeBlinking"
+                        @update:model-value="val => modelSettings.eyeBlinking = val"
+                      />
 
-                      <n-space justify="space-between" align="center">
-                        <span>模型拖拽</span>
-                        <n-switch
-                          :value="modelSettings.interactive"
-                          @update:value="(value) => { modelSettings.interactive = value; updateInteractive(); }"
-                        />
-                      </n-space>
+                      <setting-switch
+                        label="模型拖拽"
+                        :model-value="modelSettings.interactive"
+                        :updater="currentHeroModel?.setInteractive"
+                        @update:model-value="val => modelSettings.interactive = val"
+                      />
 
                       <!-- 新增：语音播放开关 -->
-                      <n-space justify="space-between" align="center">
-                        <span>语音播放</span>
-                        <n-switch
-                          :value="modelSettings.enableAudio"
-                          @update:value="(value) => { modelSettings.enableAudio = value; updateEnableAudio(); }"
-                        />
-                      </n-space>
+                      <setting-switch
+                        label="语音播放"
+                        :model-value="modelSettings.enableAudio"
+                        :updater="val => currentHeroModel.model.audioEnabled = val"
+                        @update:model-value="val => modelSettings.enableAudio = val"
+                      />
 
                       <!-- 新增：文本显示开关 -->
-                      <n-space justify="space-between" align="center">
-                        <span>文本显示</span>
-                        <n-switch
-                          :value="modelSettings.showText"
-                          @update:value="(value) => { modelSettings.showText = value; updateShowText(); }"
-                        />
-                      </n-space>
+                      <setting-switch
+                        label="文本显示"
+                        :model-value="modelSettings.showText"
+                        :updater="val => currentHeroModel.model.textEnabled = val"
+                        @update:model-value="val => modelSettings.showText = val"
+                      />
                     </n-space>
 
                     <n-divider style="margin: 16px 0;" />
@@ -160,21 +141,17 @@
                         交互功能
                       </div>
 
-                      <n-space justify="space-between" align="center">
-                        <span>滚轮缩放</span>
-                        <n-switch
-                          :value="modelSettings.wheelZoom"
-                          @update:value="(value) => { modelSettings.wheelZoom = value; updateWheelZoom(); }"
-                        />
-                      </n-space>
+                      <setting-switch
+                        label="滚轮缩放"
+                        :model-value="modelSettings.wheelZoom"
+                        @update:model-value="(value) => { modelSettings.wheelZoom = value; updateWheelZoom(); }"
+                      />
 
-                      <n-space justify="space-between" align="center">
-                        <span>鼠标交互</span>
-                        <n-switch
-                          :value="modelSettings.clickInteraction"
-                          @update:value="(value) => { modelSettings.clickInteraction = value; updateClickInteraction(); }"
-                        />
-                      </n-space>
+                      <setting-switch
+                        label="鼠标交互"
+                        :model-value="modelSettings.clickInteraction"
+                        @update:model-value="(value) => { modelSettings.clickInteraction = value; updateClickInteraction(); }"
+                      />
 
                       <!-- 缩放设置 -->
                       <div v-if="modelSettings.wheelZoom" style="margin-top: 12px;">
@@ -435,30 +412,19 @@
                       :key="param.parameterIds"
                       style="padding: 12px; border: 1px solid var(--n-border-color); border-radius: 6px;"
                     >
-                      <n-space vertical size="small">
-                        <div style="font-size: 13px; font-weight: 500;">{{ param.parameterIds }}</div>
-                        <n-slider
-                          :value="param.defaultValue"
-                          :min="param.min"
-                          :max="param.max"
-                          :step="0.01"
-                          @update:value="(value) => updateParameter(param.parameterIds, value)"
-                          :tooltip="true"
-                        />
-                        <n-space justify="space-between" align="center">
-                          <span style="font-size: 11px; color: var(--n-text-color-disabled);">{{ param.min }}</span>
-                          <n-input-number
-                            :value="param.defaultValue"
-                            :min="param.min"
-                            :max="param.max"
-                            :step="0.01"
-                            size="tiny"
-                            @update:value="(value) => updateParameter(param.parameterIds, value)"
-                            style="width: 80px;"
-                          />
-                          <span style="font-size: 11px; color: var(--n-text-color-disabled);">{{ param.max }}</span>
-                        </n-space>
-                      </n-space>
+                      <setting-slider
+                        :label="param.parameterIds"
+                        :model-value="currentParameters[param.parameterIds] ?? param.defaultValue"
+                        :min="param.min"
+                        :max="param.max"
+                        :step="0.01"
+                        :updater="(value) => currentHeroModel?.setParameters(param.parameterIds, value)"
+                        @update:model-value="(value) => currentParameters[param.parameterIds] = value"
+                        :form-item-style="{ margin: '0' }"
+                        :slider-style="{ margin: '8px 0' }"
+                        :input-number-style="{ width: '80px' }"
+                        space-size="small"
+                      />
                     </div>
                   </n-space>
                 </div>
@@ -494,30 +460,19 @@
                       :key="part.partId"
                       style="padding: 12px; border: 1px solid var(--n-border-color); border-radius: 6px;"
                     >
-                      <n-space vertical size="small">
-                        <div style="font-size: 13px; font-weight: 500;">{{ part.partId }}</div>
-                        <n-slider
-                          :value="part.defaultValue"
-                          :min="0"
-                          :max="1"
-                          :step="0.1"
-                          @update:value="(value) => updatePartOpacity(part.partId, value)"
-                          :tooltip="true"
-                        />
-                        <n-space justify="space-between" align="center">
-                          <span style="font-size: 11px; color: var(--n-text-color-disabled);">0</span>
-                          <n-input-number
-                            :value="part.defaultValue"
-                            :min="0"
-                            :max="1"
-                            :step="0.1"
-                            size="tiny"
-                            @update:value="(value) => updatePartOpacity(part.partId, value)"
-                            style="width: 80px;"
-                          />
-                          <span style="font-size: 11px; color: var(--n-text-color-disabled);">1</span>
-                        </n-space>
-                      </n-space>
+                      <setting-slider
+                        :label="part.partId"
+                        :model-value="currentParts[part.partId] ?? part.defaultValue"
+                        :min="0"
+                        :max="1"
+                        :step="0.1"
+                        :updater="(value) => currentHeroModel?.setPartOpacity(part.partId, value)"
+                        @update:model-value="(value) => currentParts[part.partId] = value"
+                        :form-item-style="{ margin: '0' }"
+                        :slider-style="{ margin: '8px 0' }"
+                        :input-number-style="{ width: '80px' }"
+                        space-size="small"
+                      />
                     </div>
                   </n-space>
                 </div>
@@ -560,11 +515,15 @@ import { useMessage } from 'naive-ui'
 import { useLive2DStore } from '../stores/live2d'
 import { globalStateSyncManager } from '../utils/live2d/state-sync-manager.js'
 import { globalResourceManager } from '../utils/resource-manager.js'
+import SettingSlider from './settings/SettingSlider.vue'
+import SettingSwitch from './settings/SettingSwitch.vue'
 
 
 export default {
   name: 'ModelSettings',
   components: {
+    SettingSlider,
+    SettingSwitch
   },
   emits: ['back'],
   setup(_, { emit }) {
@@ -573,11 +532,7 @@ export default {
 
     // 状态管理
     const loading = ref(false)
-    const dataLoaded = ref(false)
-    const expressionsLoaded = ref(false)
-    const motionsLoaded = ref(false)
-    const parametersLoaded = ref(false)
-    const partsLoaded = ref(false)
+    // 移除 dataLoaded, expressionsLoaded, motionsLoaded, parametersLoaded, partsLoaded，因为计算属性会直接从模型获取
 
     // 设置同步控制
     const settingsSyncEnabled = ref(true)
@@ -595,8 +550,8 @@ export default {
 
     // 扩展状态管理
     const currentExpression = ref(null)
-    const currentParameters = ref({})
-    const currentParts = ref({})
+    const currentParameters = reactive({})
+    const currentParts = reactive({})
     const currentAudioState = ref(false)
     const currentTextState = ref(false)
 
@@ -623,104 +578,103 @@ export default {
 
     // 获取当前的 heroModel 实例
     const currentHeroModel = computed(() => {
-      // 添加更多响应式依赖
-      const manager = live2dStore?.manager
-      const isLoading = live2dStore?.isLoading || false
-      const currentModelValue = currentModel.value
+      const manager = live2dStore?.manager;
+      const currentModelValue = currentModel.value;
 
-      // 确保响应式依赖被追踪
-      if (live2dStore?.loadedModels) {
-        live2dStore.loadedModels.size
+      // 1. 确保 manager 和 currentModelValue 都已准备好
+      if (!manager || !currentModelValue || !currentModelValue.id) {
+        // console.log('🔍 [ModelSettings] Manager or currentModel is not ready.');
+        return null;
+      }
+      
+      // 2. 确保模型已完全加载
+      if (live2dStore.isLoading) {
+        // console.log(`🔍 [ModelSettings] Store is loading, model might not be fully ready.`);
+        return null;
       }
 
-      if (!currentModelValue) {
-        return null
+      // 3. 确保模型在管理器中实际存在
+      const heroModel = manager.getModel(currentModelValue.id);
+      if (!heroModel) {
+        // console.log(`🔍 [ModelSettings] HeroModel with id ${currentModelValue.id} not found in manager.`);
+        return null;
       }
 
-      if (!manager) {
-        return null
-      }
+      console.log(`[ModelSettings] currentHeroModel resolved for id ${currentModelValue.id}.`);
+      return heroModel;
+    });
 
-      if (isLoading) {
-        return null
-      }
-
-      const heroModel = manager.getModel(currentModelValue.id)
-      return heroModel
-    })
-
-    // 从 heroModel 获取表情数据（优化性能）
+    // 从 heroModel 获取表情数据
     const expressions = computed(() => {
-      if (!currentHeroModel.value || !expressionsLoaded.value) {
+      if (!currentHeroModel.value) {
+        console.log('🔍 [ModelSettings] expressions: currentHeroModel is null.')
         return []
       }
-
       try {
-        const expressions = currentHeroModel.value.getExpressions()
-        return expressions || []
+        const exprs = currentHeroModel.value.getExpressions() || []
+        console.log('🔍 [ModelSettings] expressions computed:', exprs.length, 'items')
+        return exprs
       } catch (error) {
         console.error('❌ [ModelSettings] 获取表情数据失败:', error)
         return []
       }
     })
 
-    // 从 heroModel 获取动作数据（优化性能）
+    // 从 heroModel 获取动作数据
     const motions = computed(() => {
-      if (!currentHeroModel.value || !motionsLoaded.value) {
+      if (!currentHeroModel.value) {
+        console.log('🔍 [ModelSettings] motions: currentHeroModel is null.')
         return {}
       }
-
       try {
-        const motions = currentHeroModel.value.getMotions()
-        return motions || {}
+        const mots = currentHeroModel.value.getMotions() || {}
+        console.log('🔍 [ModelSettings] motions computed:', Object.keys(mots).length, 'groups')
+        return mots
       } catch (error) {
         console.error('❌ [ModelSettings] 获取动作数据失败:', error)
         return {}
       }
     })
 
-    // 从 heroModel 获取参数数据（使用懒加载优化性能）
+    // 从 heroModel 获取参数数据
     const parameters = computed(() => {
-      if (!currentHeroModel.value || !parametersLoaded.value) {
+      if (!currentHeroModel.value) {
+        console.log('🔍 [ModelSettings] parameters: currentHeroModel is null.')
         return []
       }
-
       try {
-        const parameters = currentHeroModel.value.getAllParameters()
-        return parameters || []
+        const modelParams = currentHeroModel.value.getAllParameters() || []
+        console.log('🔍 [ModelSettings] parameters computed:', modelParams.length, 'items')
+        return modelParams
       } catch (error) {
         console.error('❌ [ModelSettings] 获取参数数据失败:', error)
         return []
       }
     })
 
-    // 从 heroModel 获取部件不透明度数据（使用懒加载优化性能）
+    // 从 heroModel 获取部件不透明度数据
     const partOpacity = computed(() => {
-      if (!currentHeroModel.value || !partsLoaded.value) {
+      if (!currentHeroModel.value) {
+        console.log('🔍 [ModelSettings] partOpacity: currentHeroModel is null.')
         return []
       }
-
       try {
-        const partOpacity = currentHeroModel.value.getAllPartOpacity()
-        return partOpacity || []
+        const modelParts = currentHeroModel.value.getAllPartOpacity() || []
+        console.log('🔍 [ModelSettings] partOpacity computed:', modelParts.length, 'items.')
+        return modelParts
       } catch (error) {
         console.error('❌ [ModelSettings] 获取部件数据失败:', error)
         return []
       }
     })
-      // 资源清理函数 - 必须在watch之前定义
-      const cleanupResources = () => {
+
+    // 资源清理函数
+    const cleanupResources = () => {
       // 清理定时器 - 使用资源管理器
       if (syncDebounceTimer.value) {
         globalResourceManager.cleanupTimers()
         syncDebounceTimer.value = null
       }
-
-      // 注销状态同步 - 暂时注释掉，避免初始化顺序问题
-      // if (currentModel.value) {
-      //   unregisterStateSync()
-      // }
-
       console.log('🧹 [ModelSettings] 资源清理完成')
     }
     // 设置同步方法
@@ -749,8 +703,8 @@ export default {
           showText: modelSettings.showText,
           expression: currentExpression.value,
           motion: currentPlayingMotion.value,
-          parameters: { ...currentParameters.value },
-          parts: { ...currentParts.value }
+          parameters: { ...currentParameters },
+          parts: { ...currentParts }
         }
 
         // 统一使用updateModelState更新所有设置
@@ -780,40 +734,63 @@ export default {
 
         const settings = live2dStore.modelState.settings
 
+        // 统一处理基础设置和扩展设置
+        const applySetting = (key, target, source, defaultValue = undefined) => {
+          if (source[key] !== undefined) {
+            target[key] = source[key]
+          } else if (defaultValue !== undefined) {
+            target[key] = defaultValue
+          }
+        }
+
         // 基础设置
-        if (settings.scale !== undefined) modelSettings.scale = settings.scale
-        if (settings.rotation !== undefined) modelSettings.rotation = settings.rotation
-        if (settings.breathing !== undefined) modelSettings.breathing = settings.breathing
-        if (settings.eyeBlinking !== undefined) modelSettings.eyeBlinking = settings.eyeBlinking
-        if (settings.interactive !== undefined) modelSettings.interactive = settings.interactive
+        applySetting('scale', modelSettings, settings)
+        applySetting('rotation', modelSettings, settings)
+        applySetting('breathing', modelSettings, settings)
+        applySetting('eyeBlinking', modelSettings, settings)
+        applySetting('interactive', modelSettings, settings)
 
         // 交互功能设置
-        if (settings.wheelZoom !== undefined) modelSettings.wheelZoom = settings.wheelZoom
-        if (settings.clickInteraction !== undefined) modelSettings.clickInteraction = settings.clickInteraction
+        applySetting('wheelZoom', modelSettings, settings)
+        applySetting('clickInteraction', modelSettings, settings)
 
         // 缩放设置 - 修复数据结构匹配
         if (settings.zoomSettings) {
-          if (settings.zoomSettings.speed !== undefined) modelSettings.zoomSpeed = settings.zoomSettings.speed
-          if (settings.zoomSettings.min !== undefined) modelSettings.minScale = settings.zoomSettings.min
-          if (settings.zoomSettings.max !== undefined) modelSettings.maxScale = settings.zoomSettings.max
+          applySetting('speed', modelSettings, settings.zoomSettings, modelSettings.zoomSpeed)
+          applySetting('min', modelSettings, settings.zoomSettings, modelSettings.minScale)
+          applySetting('max', modelSettings, settings.zoomSettings, modelSettings.maxScale)
         } else {
           // 兼容旧格式
-          if (settings.zoomSpeed !== undefined) modelSettings.zoomSpeed = settings.zoomSpeed
-          if (settings.minScale !== undefined) modelSettings.minScale = settings.minScale
-          if (settings.maxScale !== undefined) modelSettings.maxScale = settings.maxScale
+          applySetting('zoomSpeed', modelSettings, settings)
+          applySetting('minScale', modelSettings, settings)
+          applySetting('maxScale', modelSettings, settings)
         }
 
         // 扩展设置
-        if (settings.enableAudio !== undefined) modelSettings.enableAudio = settings.enableAudio
-        if (settings.showText !== undefined) modelSettings.showText = settings.showText
+        applySetting('enableAudio', modelSettings, settings)
+        applySetting('showText', modelSettings, settings)
 
         // 扩展状态
-        if (settings.expression !== undefined) currentExpression.value = settings.expression
-        if (settings.motion !== undefined) currentPlayingMotion.value = settings.motion
-        if (settings.parameters !== undefined) currentParameters.value = settings.parameters
-        if (settings.parts !== undefined) currentParts.value = settings.parts
-        if (settings.audio !== undefined) currentAudioState.value = settings.audio
-        if (settings.text !== undefined) currentTextState.value = settings.text
+        applySetting('expression', currentExpression, settings, null)
+        applySetting('motion', currentPlayingMotion, settings, null)
+        if (settings.parameters !== undefined) {
+          // 清空现有参数
+          for (const key in currentParameters) {
+            delete currentParameters[key]
+          }
+          // 复制新参数
+          Object.assign(currentParameters, settings.parameters)
+        }
+        if (settings.parts !== undefined) {
+          // 清空现有部件
+          for (const key in currentParts) {
+            delete currentParts[key]
+          }
+          // 复制新部件
+          Object.assign(currentParts, settings.parts)
+        }
+        applySetting('audio', currentAudioState, settings, false)
+        applySetting('text', currentTextState, settings, false)
 
         console.log('✅ [ModelSettings] 设置已从Store加载')
       } finally {
@@ -821,167 +798,74 @@ export default {
       }
     }
 
-    // 从模型获取当前缩放和旋转状态并同步到UI - 优化版本
-    const syncModelTransformFromModel = () => {
-      if (!currentHeroModel.value) return
+    // 统一同步所有模型状态到UI的函数
+    const syncAllModelStatesToUI = () => {
+      if (!currentHeroModel.value) return;
+
+      console.log('🔄 [ModelSettings] Starting full state sync from model to UI.');
 
       try {
-        // 获取模型当前的缩放和旋转
-        const scaleObj = currentHeroModel.value.getScale()
-        const angle = currentHeroModel.value.getAngle()
-
-        // 同步到UI设置 - 简化检查
-        if (scaleObj !== undefined) {
-          const scale = scaleObj?.x || scaleObj
-          if (typeof scale === 'number' && Math.abs(scale - modelSettings.scale) > 0.001) {
-            modelSettings.scale = Math.max(0.01, Math.min(1, scale))
-          }
-        }
-
-        if (angle !== undefined && typeof angle === 'number' && Math.abs(angle - modelSettings.rotation) > 0.1) {
-          modelSettings.rotation = Math.max(0, Math.min(360, angle))
-        }
-
-        console.log('🔄 [ModelSettings] 模型变换状态已同步到UI')
-      } catch (error) {
-        console.error('❌ [ModelSettings] 同步模型变换状态失败:', error)
-      }
-    }
-
-    // 从模型获取当前参数值并同步到UI - 优化版本
-    const syncParametersFromModel = () => {
-      if (!currentHeroModel.value || !parametersLoaded.value) return
-
-      try {
-        // 获取模型当前的参数值
-        const currentParametersFromModel = currentHeroModel.value.getAllParameters()
+        // 1. 同步基础变换属性
+        const scale = currentHeroModel.value.getScale();
+        if (scale && typeof scale.x === 'number') modelSettings.scale = scale.x;
         
-        // 同步每个参数的值 - 简化逻辑
-        currentParametersFromModel.forEach(param => {
-          if (param.parameterIds && param.defaultValue !== undefined) {
-            // 更新 parameters 计算属性中的值
-            const paramIndex = parameters.value.findIndex(p => p.parameterIds === param.parameterIds)
-            if (paramIndex !== -1) {
-              parameters.value[paramIndex].defaultValue = param.defaultValue
-            }
-            
-            // 更新当前参数状态
-            currentParameters.value[param.parameterIds] = param.defaultValue
-          }
-        })
+        const rotation = currentHeroModel.value.getAngle();
+        if (typeof rotation === 'number') modelSettings.rotation = rotation;
 
-        console.log('🔄 [ModelSettings] 参数值已从模型同步')
-      } catch (error) {
-        console.error('❌ [ModelSettings] 同步参数值失败:', error)
-      }
-    }
-
-    // 从模型获取当前部件不透明度并同步到UI - 优化版本
-    const syncPartOpacityFromModel = () => {
-      if (!currentHeroModel.value || !partsLoaded.value) return
-
-      try {
-        // 获取模型当前的部件不透明度
-        const currentPartsFromModel = currentHeroModel.value.getAllPartOpacity()
-        
-        // 同步每个部件的值 - 简化逻辑
-        currentPartsFromModel.forEach(part => {
-          if (part.partId && part.defaultValue !== undefined) {
-            // 更新 partOpacity 计算属性中的值
-            const partIndex = partOpacity.value.findIndex(p => p.partId === part.partId)
-            if (partIndex !== -1) {
-              partOpacity.value[partIndex].defaultValue = part.defaultValue
-            }
-            
-            // 更新当前部件状态
-            currentParts.value[part.partId] = part.defaultValue
-          }
-        })
-
-        console.log('🔄 [ModelSettings] 部件不透明度已从模型同步')
-      } catch (error) {
-        console.error('❌ [ModelSettings] 同步部件不透明度失败:', error)
-      }
-    }
-
-    // 同步表情状态 - 优化版本
-    const syncExpressionFromModel = () => {
-      if (!currentHeroModel.value) return
-
-      try {
-        // 暂时注释掉，因为 HeroModel 中没有 getCurrentExpression 方法
-        // if (currentHeroModel.value.getCurrentExpression) {
-        //   const expression = currentHeroModel.value.getCurrentExpression()
-        //   if (expression !== currentExpression.value) {
-        //     currentExpression.value = expression
-        //     console.log('🔄 [ModelSettings] 表情状态已从模型同步:', expression)
-        //   }
-        // }
-        console.log('🔄 [ModelSettings] 表情状态同步已跳过（方法未实现）')
-      } catch (error) {
-        console.error('❌ [ModelSettings] 同步表情状态失败:', error)
-      }
-    }
-
-    // 同步动作状态 - 优化版本
-    const syncMotionFromModel = () => {
-      if (!currentHeroModel.value) return
-
-      try {
-        if (currentHeroModel.value.model?.internalModel?.motionManager) {
-          const currentMotion = currentHeroModel.value.model.internalModel.motionManager.currentMotion
-          if (currentMotion) {
-            const motionState = {
-              group: currentMotion.group,
-              index: currentMotion.index,
-              isPlaying: true,
-              name: currentMotion.name || `${currentMotion.group}_${currentMotion.index}`
-            }
-            
-            if (JSON.stringify(motionState) !== JSON.stringify(currentPlayingMotion.value)) {
-              currentPlayingMotion.value = motionState
-              isMotionPlaying.value = true
-              console.log('🔄 [ModelSettings] 动作状态已从模型同步:', motionState)
-            }
-          } else {
-            if (isMotionPlaying.value) {
-              isMotionPlaying.value = false
-              currentPlayingMotion.value = null
-              console.log('🔄 [ModelSettings] 动作已停止')
-            }
-          }
-        }
-      } catch (error) {
-        console.error('❌ [ModelSettings] 同步动作状态失败:', error)
-      }
-    }
-
-    // 同步音频和文本状态 - 优化版本
-    const syncAudioAndTextFromModel = () => {
-      if (!currentHeroModel.value) return
-
-      try {
-        // 同步音频状态 - 简化检查
-        if (currentHeroModel.value.model.audioEnabled !== undefined) {
-          const audioState = currentHeroModel.value.model.audioEnabled !== false
-          if (audioState !== currentAudioState.value) {
-            currentAudioState.value = audioState
-            modelSettings.enableAudio = audioState
-            console.log('🔄 [ModelSettings] 音频状态已从模型同步:', audioState)
-          }
+        // 2. 同步布尔值状态
+        if (currentHeroModel.value.model) {
+          modelSettings.breathing = currentHeroModel.value.model.breathing;
+          modelSettings.eyeBlinking = currentHeroModel.value.model.eyeBlinking;
+          modelSettings.interactive = currentHeroModel.value.model.interactive;
         }
 
-        // 同步文本状态 - 简化检查
-        if (currentHeroModel.value.model.textEnabled !== undefined) {
-          const textState = currentHeroModel.value.model.textEnabled !== false
-          if (textState !== currentTextState.value) {
-            currentTextState.value = textState
-            modelSettings.showText = textState
-            console.log('🔄 [ModelSettings] 文本状态已从模型同步:', textState)
-          }
+        // 3. 同步表情
+        const expressionIndex = currentHeroModel.value.getCurrentExpressionIndex();
+        currentExpression.value = expressionIndex;
+
+        // 4. 同步动作
+        const motionManager = currentHeroModel.value.model?.internalModel?.motionManager;
+        if (motionManager && motionManager.currentMotion) {
+          const currentMotion = motionManager.currentMotion;
+          currentPlayingMotion.value = {
+            group: currentMotion.group,
+            index: currentMotion.index,
+            isPlaying: true,
+            name: currentMotion.name || `${currentMotion.group}_${currentMotion.index}`
+          };
+          isMotionPlaying.value = true;
+        } else {
+          currentPlayingMotion.value = null;
+          isMotionPlaying.value = false;
         }
+
+        // 5. 同步参数
+        const params = currentHeroModel.value.getAllParameters() || [];
+        for (const key in currentParameters) delete currentParameters[key];
+        params.forEach(p => {
+          currentParameters[p.parameterIds] = p.defaultValue;
+        });
+
+        // 6. 同步部件不透明度
+        const parts = currentHeroModel.value.getAllPartOpacity() || [];
+        for (const key in currentParts) delete currentParts[key];
+        parts.forEach(p => {
+          currentParts[p.partId] = p.defaultValue;
+        });
+
+        // 7. 同步音频和文本状态
+        modelSettings.enableAudio = currentHeroModel.value.model.audioEnabled !== false;
+        modelSettings.showText = currentHeroModel.value.model.textEnabled !== false;
+        currentAudioState.value = modelSettings.enableAudio;
+        currentTextState.value = modelSettings.showText;
+
+        // 8. 同步交互设置
+        updateZoomSettings();
+
+        console.log('✅ [ModelSettings] Full state sync completed.');
       } catch (error) {
-        console.error('❌ [ModelSettings] 同步音频和文本状态失败:', error)
+        console.error('❌ [ModelSettings] 同步模型状态失败:', error);
+        message.error('同步模型状态失败');
       }
     }
 
@@ -997,13 +881,6 @@ export default {
 
         // 清理之前模型的资源
         cleanupResources()
-
-        // 重置加载状态
-        dataLoaded.value = false
-        expressionsLoaded.value = false
-        motionsLoaded.value = false
-        parametersLoaded.value = false
-        partsLoaded.value = false
 
         // 暂时禁用同步，避免重复触发
         settingsSyncEnabled.value = false
@@ -1031,8 +908,12 @@ export default {
         // 重置扩展状态
         currentExpression.value = null
         currentPlayingMotion.value = null
-        currentParameters.value = {}
-        currentParts.value = {}
+        for (const key in currentParameters) {
+          delete currentParameters[key]
+        }
+        for (const key in currentParts) {
+          delete currentParts[key]
+        }
         currentAudioState.value = false
         currentTextState.value = false
         isMotionPlaying.value = false
@@ -1045,7 +926,7 @@ export default {
 
         // 尝试从状态同步管理器恢复状态
         if (newModel && currentHeroModel.value) {
-          const restored = globalStateSyncManager.restoreModelState(newModel.id, currentHeroModel.value)
+          const restored = globalStateSyncManager.restoreStateFromCache(newModel.id, currentHeroModel.value)
           if (restored) {
             console.log('✅ [ModelSettings] 状态已从状态同步管理器恢复')
           }
@@ -1060,15 +941,7 @@ export default {
         registerStateSync()
 
         // 同步模型的当前状态
-        syncModelTransformFromModel()
-        syncExpressionFromModel()
-        syncMotionFromModel()
-        syncAudioAndTextFromModel()
-
-        // 应用默认缩放设置到交互管理器
-        updateZoomSettings()
-
-        loadModelData()
+        syncAllModelStatesToUI()
       }
     }, { immediate: true })
 
@@ -1079,6 +952,15 @@ export default {
         loadSettingsFromStore()
       }
     }, { deep: true })
+
+    // 监听 heroModel 变化，确保数据同步
+    watch(currentHeroModel, (newHeroModel) => {
+      if (newHeroModel) {
+        console.log('🦸‍♂️ [ModelSettings] HeroModel 准备就绪，执行完全同步')
+        // 首次加载时，currentModel 的 watch 回调会调用 syncAllModelStatesToUI
+        // 此处不再需要重复调用，以避免冗余的同步操作
+      }
+    }, { immediate: true })
 
     // 监听动作播放状态变化
     watch(isMotionPlaying, (newValue) => {
@@ -1099,18 +981,14 @@ export default {
 
     // 监听参数变化
     watch(currentParameters, (newParameters) => {
-      if (Object.keys(newParameters).length > 0) {
-        console.log('🔧 [ModelSettings] 参数已更新:', newParameters)
-        syncSettingsToStore()
-      }
+      console.log('🔧 [ModelSettings] 参数已更新:', newParameters)
+      syncSettingsToStore()
     }, { deep: true })
 
     // 监听部件变化
     watch(currentParts, (newParts) => {
-      if (Object.keys(newParts).length > 0) {
-        console.log('🎨 [ModelSettings] 部件已更新:', newParts)
-        syncSettingsToStore()
-      }
+      console.log('🎨 [ModelSettings] 部件已更新:', newParts)
+      syncSettingsToStore()
     }, { deep: true })
 
     // 监听音频和文本状态变化
@@ -1119,66 +997,7 @@ export default {
       syncSettingsToStore()
     })
 
-    // 创建安全的更新器 - 优化版本
-    const createSafeUpdater = (updater, settingName) => {
-      return (...args) => {
-        try {
-          // 更新前加锁，防止watch干扰
-          isLoadingFromStore.value = true
-          
-          updater(...args)
-          // 统一使用syncSettingsToStore，避免重复调用
-          syncSettingsToStore()
-          console.log(`✅ [ModelSettings] ${settingName}设置已更新`)
-        } catch (error) {
-          console.error(`❌ [ModelSettings] 更新${settingName}设置失败:`, error)
-          message.error(`更新${settingName}设置失败`)
-        } finally {
-          // 延迟解锁，确保所有操作完成
-          setTimeout(() => {
-            isLoadingFromStore.value = false
-          }, 10)
-        }
-      }
-    }
-
-    // 基础设置更新方法 - 优化版本，移除冗余检查
-    const updateScale = createSafeUpdater(() => {
-      if (!currentHeroModel.value) return
-
-      const clampedScale = Math.max(0.01, Math.min(1, modelSettings.scale))
-      currentHeroModel.value.setScale(clampedScale)
-    }, '缩放')
-
-    const updateRotation = createSafeUpdater(() => {
-      if (!currentHeroModel.value) return
-
-      const clampedRotation = Math.max(0, Math.min(360, modelSettings.rotation))
-      currentHeroModel.value.setAngle(clampedRotation)
-    }, '旋转')
-
-    const updateBreathing = createSafeUpdater(() => {
-      if (!currentHeroModel.value) return
-
-      currentHeroModel.value.setBreathing(modelSettings.breathing)
-    }, '呼吸动画')
-
-    const updateEyeBlinking = createSafeUpdater(() => {
-      if (!currentHeroModel.value) return
-
-      currentHeroModel.value.setEyeBlinking(modelSettings.eyeBlinking)
-    }, '眨眼动画')
-
-    const updateInteractive = createSafeUpdater(() => {
-      if (!currentHeroModel.value) return
-
-      // 只有当鼠标交互启用时，才设置模型交互性
-      const shouldBeInteractive = modelSettings.interactive && modelSettings.clickInteraction
-      currentHeroModel.value.setInteractive(shouldBeInteractive)
-    }, '交互性')
-
-    // 表情设置方法 - 优化版本
-    const setExpression = createSafeUpdater((index) => {
+    const setExpression = (index) => {
       if (!currentHeroModel.value || !expressions.value[index]) return
 
       const expression = expressions.value[index]
@@ -1186,10 +1005,11 @@ export default {
       currentExpression.value = index
 
       message.success(`已设置表情: ${expression.Name || `表情 ${index + 1}`}`)
-    }, '表情')
+      syncSettingsToStore()
+    }
 
     // 动作播放方法 - 优化版本，移除冗余检查
-    const playMotion = createSafeUpdater((group, index, motion) => {
+    const playMotion = (group, index, motion) => {
       if (!currentHeroModel.value) return
 
       // 停止当前动作
@@ -1210,9 +1030,10 @@ export default {
       }
 
       message.success(`正在播放动作: ${currentPlayingMotion.value.name}`)
-    }, '动作')
+      syncSettingsToStore()
+    }
 
-    const stopCurrentMotion = createSafeUpdater(() => {
+    const stopCurrentMotion = () => {
       if (!currentHeroModel.value) return
 
       currentHeroModel.value.model.stopMotions()
@@ -1220,9 +1041,10 @@ export default {
       currentPlayingMotion.value = null
 
       message.success('动作已停止')
-    }, '停止动作')
+      syncSettingsToStore()
+    }
 
-    const playRandomMotion = createSafeUpdater(() => {
+    const playRandomMotion = () => {
       if (!currentHeroModel.value || Object.keys(motions.value).length === 0) return
 
       const groups = Object.keys(motions.value)
@@ -1232,9 +1054,9 @@ export default {
       const motion = motionGroup[randomIndex]
 
       playMotion(randomGroup, randomIndex, motion)
-    }, '随机动作')
+    }
 
-    const playRandomMotionFromGroup = createSafeUpdater((groupName) => {
+    const playRandomMotionFromGroup = (groupName) => {
       if (!currentHeroModel.value || !motions.value[groupName]) return
 
       const motionGroup = motions.value[groupName]
@@ -1242,7 +1064,7 @@ export default {
       const motion = motionGroup[randomIndex]
 
       playMotion(groupName, randomIndex, motion)
-    }, '随机动作')
+    }
 
     const isCurrentMotion = (group, index) => {
       return currentPlayingMotion.value && 
@@ -1250,21 +1072,6 @@ export default {
              currentPlayingMotion.value.index === index
     }
 
-    // 参数更新方法 - 优化版本
-    const updateParameter = createSafeUpdater((paramId, value) => {
-      if (!currentHeroModel.value) return
-
-      currentHeroModel.value.setParameters(paramId, value)
-      currentParameters.value[paramId] = value
-    }, '参数')
-
-    // 部件更新方法 - 优化版本
-    const updatePartOpacity = createSafeUpdater((partId, value) => {
-      if (!currentHeroModel.value) return
-
-      currentHeroModel.value.setPartOpacity(partId, value)
-      currentParts.value[partId] = value
-    }, '部件不透明度')
 
     // 交互功能更新方法 - 优化版本，移除冗余检查
     const updateWheelZoom = () => {
@@ -1307,7 +1114,8 @@ export default {
       }
     }
 
-    const updateZoomSettings = () => {
+    // 交互功能更新方法 - 优化版本，移除冗余检查
+    function updateZoomSettings() {
       try {
         // 只处理缩放步长，不再应用最小和最大值限制
         const zoomSpeed = Math.max(0.001, Math.min(0.1, modelSettings.zoomSpeed))
@@ -1353,19 +1161,6 @@ export default {
       }
     }
 
-    const updateEnableAudio = createSafeUpdater(() => {
-      if (!currentHeroModel.value) return
-
-      currentHeroModel.value.model.audioEnabled = modelSettings.enableAudio
-      currentAudioState.value = modelSettings.enableAudio
-    }, '语音播放')
-
-    const updateShowText = createSafeUpdater(() => {
-      if (!currentHeroModel.value) return
-
-      currentHeroModel.value.model.textEnabled = modelSettings.showText
-      currentTextState.value = modelSettings.showText
-    }, '文本显示')
 
     // 状态同步管理器集成方法 - 优化版本，简化逻辑
     const registerStateSync = () => {
@@ -1382,28 +1177,34 @@ export default {
         if (now - lastSyncTime.value < syncInterval) return
         lastSyncTime.value = now
 
-        // 同步基础状态到UI - 简化检查
-        if (currentState.scale !== undefined && Math.abs(currentState.scale - modelSettings.scale) > 0.001) {
-          modelSettings.scale = Math.max(0.01, Math.min(1, currentState.scale))
+        // 统一应用状态到UI
+        const applyStateToUI = (key, targetRef, sourceValue, tolerance = 0, min = -Infinity, max = Infinity) => {
+          if (sourceValue !== undefined) {
+            if (typeof sourceValue === 'number' && Math.abs(sourceValue - targetRef.value) > tolerance) {
+              targetRef.value = Math.max(min, Math.min(max, sourceValue))
+            } else if (typeof sourceValue === 'boolean' && sourceValue !== targetRef.value) {
+              targetRef.value = sourceValue
+            } else if (typeof sourceValue === 'object' && JSON.stringify(sourceValue) !== JSON.stringify(targetRef.value)) {
+              targetRef.value = sourceValue
+            }
+            // 对于 modelSettings 中的布尔值，也同步更新
+            if (modelSettings[key] !== undefined && typeof modelSettings[key] === 'boolean') {
+              modelSettings[key] = sourceValue
+            }
+          }
         }
 
-        if (currentState.rotation !== undefined && Math.abs(currentState.rotation - modelSettings.rotation) > 0.1) {
-          modelSettings.rotation = Math.max(0, Math.min(360, currentState.rotation))
-        }
+        applyStateToUI('scale', modelSettings.scale, currentState.scale, 0.001, 0.01, 1)
+        applyStateToUI('rotation', modelSettings.rotation, currentState.rotation, 0.1, 0, 360)
+        applyStateToUI('breathing', modelSettings.breathing, currentState.breathing)
+        applyStateToUI('eyeBlinking', modelSettings.eyeBlinking, currentState.eyeBlinking)
+        applyStateToUI('interactive', modelSettings.interactive, currentState.interactive)
+        applyStateToUI('wheelZoom', modelSettings.wheelZoom, currentState.wheelZoom)
+        applyStateToUI('clickInteraction', modelSettings.clickInteraction, currentState.clickInteraction)
+        applyStateToUI('enableAudio', modelSettings.enableAudio, currentState.audio)
+        applyStateToUI('showText', modelSettings.showText, currentState.text)
 
-        if (currentState.breathing !== undefined && currentState.breathing !== modelSettings.breathing) {
-          modelSettings.breathing = currentState.breathing
-        }
-
-        if (currentState.eyeBlinking !== undefined && currentState.eyeBlinking !== modelSettings.eyeBlinking) {
-          modelSettings.eyeBlinking = currentState.eyeBlinking
-        }
-
-        if (currentState.interactive !== undefined && currentState.interactive !== modelSettings.interactive) {
-          modelSettings.interactive = currentState.interactive
-        }
-
-        // 同步扩展状态到UI - 简化版本
+        // 复杂对象同步
         if (currentState.expression !== undefined && currentState.expression !== currentExpression.value) {
           currentExpression.value = currentState.expression
         }
@@ -1419,29 +1220,21 @@ export default {
         }
 
         if (currentState.parameters && typeof currentState.parameters === 'object') {
-          Object.entries(currentState.parameters).forEach(([paramId, value]) => {
-            if (currentParameters.value[paramId] !== value) {
-              currentParameters.value[paramId] = value
-            }
-          })
+          // 清空现有参数
+          for (const key in currentParameters) {
+            delete currentParameters[key]
+          }
+          // 复制新参数
+          Object.assign(currentParameters, currentState.parameters)
         }
 
         if (currentState.parts && typeof currentState.parts === 'object') {
-          Object.entries(currentState.parts).forEach(([partId, value]) => {
-            if (currentParts.value[partId] !== value) {
-              currentParts.value[partId] = value
-            }
-          })
-        }
-
-        if (currentState.audio !== undefined && currentState.audio !== currentAudioState.value) {
-          currentAudioState.value = currentState.audio
-          modelSettings.enableAudio = currentState.audio
-        }
-
-        if (currentState.text !== undefined && currentState.text !== currentTextState.value) {
-          currentTextState.value = currentState.text
-          modelSettings.showText = currentState.text
+          // 清空现有部件
+          for (const key in currentParts) {
+            delete currentParts[key]
+          }
+          // 复制新部件
+          Object.assign(currentParts, currentState.parts)
         }
 
         console.log('🔄 [ModelSettings] 状态已从模型同步到UI:', modelId, currentState)
@@ -1470,8 +1263,8 @@ export default {
         interactive: modelSettings.interactive,
         expression: currentExpression.value,
         motion: currentPlayingMotion.value,
-        parameters: currentParameters.value,
-        parts: currentParts.value,
+        parameters: currentParameters,
+        parts: currentParts,
         audio: currentAudioState.value,
         text: currentTextState.value
       }
@@ -1496,8 +1289,8 @@ export default {
         interactive: modelSettings.interactive,
         expression: currentExpression.value,
         motion: currentPlayingMotion.value,
-        parameters: currentParameters.value,
-        parts: currentParts.value,
+        parameters: currentParameters,
+        parts: currentParts,
         audio: currentAudioState.value,
         text: currentTextState.value
       }
@@ -1632,103 +1425,12 @@ export default {
       return `动作 ${index + 1}`
     }
 
-    const handleMotionAudioAndText = (motion) => {
-      if (!motion) return
-      
-      // 处理音频播放
-      if (motion.Sound && currentHeroModel.value?.model?.audioEnabled) {
-        // 这里可以添加音频播放逻辑
-        console.log('🎵 [ModelSettings] 播放音频:', motion.Sound)
-      }
-      
-      // 处理文本显示
-      if (motion.Text && currentHeroModel.value?.model?.textEnabled) {
-        // 这里可以添加文本显示逻辑
-        console.log('📝 [ModelSettings] 显示文本:', motion.Text)
-      }
-    }
-
-    // 加载模型数据 - 优化版本
-    const loadModelData = async () => {
-      if (!currentHeroModel.value) return
-
-      try {
-        loading.value = true
-        console.log('📊 [ModelSettings] 开始加载模型数据')
-
-        // 并行加载所有数据
-        await Promise.all([
-          loadExpressions(),
-          loadMotions(),
-          loadParameters(),
-          loadParts()
-        ])
-
-        dataLoaded.value = true
-        console.log('✅ [ModelSettings] 模型数据加载完成')
-      } catch (error) {
-        console.error('❌ [ModelSettings] 模型数据加载失败:', error)
-        message.error('模型数据加载失败')
-      } finally {
-        loading.value = false
-      }
-    }
-
-    // 加载表情数据 - 优化版本
-    const loadExpressions = async () => {
-      if (!currentHeroModel.value || expressionsLoaded.value) return
-
-      try {
-        // 表情数据已经在 HeroModel 中缓存，直接标记为已加载
-        expressionsLoaded.value = true
-        console.log('😊 [ModelSettings] 表情数据加载完成')
-      } catch (error) {
-        console.error('❌ [ModelSettings] 表情数据加载失败:', error)
-      }
-    }
-
-    // 加载动作数据 - 优化版本
-    const loadMotions = async () => {
-      if (!currentHeroModel.value || motionsLoaded.value) return
-
-      try {
-        // 动作数据已经在 HeroModel 中缓存，直接标记为已加载
-        motionsLoaded.value = true
-        console.log('🎬 [ModelSettings] 动作数据加载完成')
-      } catch (error) {
-        console.error('❌ [ModelSettings] 动作数据加载失败:', error)
-      }
-    }
-
-    // 加载参数数据 - 优化版本
-    const loadParameters = async () => {
-      if (!currentHeroModel.value || parametersLoaded.value) return
-
-      try {
-        // 参数数据已经在 HeroModel 中缓存，直接标记为已加载
-        parametersLoaded.value = true
-        console.log('🔧 [ModelSettings] 参数数据加载完成')
-      } catch (error) {
-        console.error('❌ [ModelSettings] 参数数据加载失败:', error)
-      }
-    }
-
-    // 加载部件数据 - 优化版本
-    const loadParts = async () => {
-      if (!currentHeroModel.value || partsLoaded.value) return
-
-      try {
-        // 部件数据已经在 HeroModel 中缓存，直接标记为已加载
-        partsLoaded.value = true
-        console.log('🧩 [ModelSettings] 部件数据加载完成')
-      } catch (error) {
-        console.error('❌ [ModelSettings] 部件数据加载失败:', error)
-      }
-    }
-
     const resetScale = () => {
       modelSettings.scale = 0.2
-      updateScale()
+      if (currentHeroModel.value?.setScale) {
+        currentHeroModel.value.setScale(0.2)
+      }
+      syncSettingsToStore()
     }
 
     return {
@@ -1755,23 +1457,14 @@ export default {
 
       // 方法
       goBack,
-      updateScale,
-      updateRotation,
-      updateBreathing,
-      updateEyeBlinking,
-      updateInteractive,
       setExpression,
       playMotion,
       stopCurrentMotion,
       playRandomMotion,
       playRandomMotionFromGroup,
       isCurrentMotion,
-      updateParameter,
-      updatePartOpacity,
       getMotionDisplayName,
       getModelDisplayName,
-      handleMotionAudioAndText,
-
       // 交互功能方法
       updateWheelZoom,
       updateClickInteraction,
@@ -1784,24 +1477,6 @@ export default {
       // 同步控制状态
       settingsSyncEnabled,
       isLoadingFromStore,
-
-      // 新增方法
-      updateEnableAudio,
-      updateShowText,
-
-      // 从模型获取当前参数值并同步到UI
-      syncParametersFromModel,
-
-      // 从模型获取当前部件不透明度并同步到UI
-      syncPartOpacityFromModel,
-
-      // 从模型获取当前缩放和旋转状态并同步到UI
-      syncModelTransformFromModel,
-
-      // 扩展同步方法
-      syncExpressionFromModel,
-      syncMotionFromModel,
-      syncAudioAndTextFromModel,
 
       // 状态同步管理器集成方法
       registerStateSync,
